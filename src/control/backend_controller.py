@@ -7,7 +7,6 @@
 """
 import os
 from time import sleep
-from uuid import uuid4
 from datetime import datetime as dt
 from typing import Optional, Any, List
 from src.configuration import configuration as cfg

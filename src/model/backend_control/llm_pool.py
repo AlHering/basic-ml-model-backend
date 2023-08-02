@@ -7,14 +7,11 @@
 """
 from uuid import uuid4
 import asyncio
-from time import sleep
 from queue import Queue
 from threading import Thread, Event
-from typing import Optional, Any, List
-from src.configuration import configuration as cfg
+from typing import Optional, Any
 from src.utility.silver.language_model_utility import spawn_language_model_instance
 from src.utility.bronze import dictionary_utility
-from src.model.backend_control.dataclasses import create_or_load_database
 
 
 def run_llm(main_switch: Event, current_switch: Event, llm_configuraiton: dict, input_queue: Queue, output_queue: Queue) -> None:

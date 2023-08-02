@@ -6,12 +6,10 @@
 ****************************************************
 """
 import uvicorn
-import os
 from enum import Enum
-from typing import Union, List, Optional, Any, Dict
+from typing import Optional, Any
 from fastapi import FastAPI
 from pydantic import BaseModel
-from uuid import uuid4
 from functools import wraps
 from src.configuration import configuration as cfg
 from src.control.backend_controller import BackendController
