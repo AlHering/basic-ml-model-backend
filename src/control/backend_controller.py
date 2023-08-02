@@ -47,7 +47,7 @@ class BackendController(object):
         Method for running shutdown process.
         """
         self.llm_pool.stop_all()
-        while any(self.llm_pool.is_running(self._cache[instance_uuid]["thread"]) for instance_uuid in self._cache):
+        while any(self.llm_pool.is_running(instance_uuid) for instance_uuid in self._cache):
             sleep(2.0)
 
     def load_instance(self, instance_uuid: str) -> Optional[str]:
@@ -57,20 +57,19 @@ class BackendController(object):
         :return: Instance UUID if process as successful.
         """
         if instance_uuid in self._cache:
-            if not self.llm_pool.is_running(self._cache[instance_uuid]["thread"]):
-                self.llm_pool.load_llm(self._cache[instance_uuid]["thread"])
+            if not self.llm_pool.is_running(instance_uuid):
+                self.llm_pool.load_llm(instance_uuid)
                 self._cache[instance_uuid]["restarted"] += 1
         else:
             self._cache[instance_uuid] = {
-                "thread": None,
                 "started": None,
                 "restarted": 0,
                 "accessed": 0,
                 "inactive": 0
             }
-            self._cache[instance_uuid]["thread"] = self.llm_pool.prepare_llm(self.get_object(
-                "instance", instance_uuid).config)
-            self.llm_pool.load_llm(self._cache[instance_uuid])
+            self.llm_pool.prepare_llm(self.get_object(
+                "instance", instance_uuid).config, instance_uuid)
+            self.llm_pool.load_llm(instance_uuid)
             self._cache[instance_uuid]["started"] = dt.now()
         return instance_uuid
 
@@ -81,8 +80,8 @@ class BackendController(object):
         :return: Instance UUID if process as successful.
         """
         if instance_uuid in self._cache:
-            if self.llm_pool.is_running(self._cache[instance_uuid]["thread"]):
-                self.llm_pool.unload_llm(self._cache[instance_uuid]["thread"])
+            if self.llm_pool.is_running(instance_uuid):
+                self.llm_pool.unload_llm(instance_uuid)
             return instance_uuid
         else:
             return None
@@ -94,7 +93,8 @@ class BackendController(object):
         :param query: Query.
         :return: Instance UUID.
         """
-        return
+        self.load_instance(instance_uuid)
+        return self.llm_pool.generate(instance_uuid, query)
 
     """
     Default object interaction.
