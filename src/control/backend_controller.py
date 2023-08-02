@@ -6,7 +6,9 @@
 ****************************************************
 """
 import os
+from time import sleep
 from uuid import uuid4
+from datetime import datetime as dt
 from typing import Optional, Any, List
 from src.configuration import configuration as cfg
 from src.model.backend_control.llm_pool import LLMPool
@@ -45,6 +47,8 @@ class BackendController(object):
         Method for running shutdown process.
         """
         self.llm_pool.stop_all()
+        while any(self.llm_pool.is_running(self._cache[instance_uuid]["thread"]) for instance_uuid in self._cache):
+            sleep(2.0)
 
     def load_instance(self, instance_uuid: str) -> Optional[str]:
         """
@@ -53,12 +57,21 @@ class BackendController(object):
         :return: Thread UUID.
         """
         if instance_uuid in self._cache:
-            if not self.llm_pool.is_running(self._cache[instance_uuid]):
-                self.llm_pool.load_llm(self._cache[instance_uuid])
+            if not self.llm_pool.is_running(self._cache[instance_uuid]["thread"]):
+                self.llm_pool.load_llm(self._cache[instance_uuid]["thread"])
+                self._cache[instance_uuid]["restarted"] += 1
         else:
-            self._cache[instance_uuid] = self.llm_pool.prepare_llm(self.get_object(
+            self._cache[instance_uuid] = {
+                "thread": None,
+                "started": None,
+                "restarted": 0,
+                "accessed": 0,
+                "inactive": 0
+            }
+            self._cache[instance_uuid]["thread"] = self.llm_pool.prepare_llm(self.get_object(
                 "instance", instance_uuid).config)
             self.llm_pool.load_llm(self._cache[instance_uuid])
+            self._cache[instance_uuid]["started"] = dt.now()
         return self._cache[instance_uuid]
 
     def unload_instance(self, instance_uuid: str) -> Optional[str]:
@@ -68,8 +81,9 @@ class BackendController(object):
         :return: Thread UUID.
         """
         if instance_uuid in self._cache:
-            if self.llm_pool.is_running(self._cache[instance_uuid]):
-                self.llm_pool.unload_llm(self._cache[instance_uuid])
+            if self.llm_pool.is_running(self._cache[instance_uuid]["thread"]):
+                self.llm_pool.unload_llm(self._cache[instance_uuid]["thread"])
+            return self._cache[instance_uuid]["thread"]
         else:
             return None
 
