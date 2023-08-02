@@ -8,6 +8,7 @@
 from typing import Any, Optional
 from abc import ABC, abstractmethod
 from pydantic import BaseModel
+from langchain.llms import LlamaCpp
 
 
 class LanguageModel(object):
@@ -16,7 +17,9 @@ class LanguageModel(object):
     """
     supported_types = {
         "llamacpp": {
-            "loaders": {},
+            "loaders": {
+                "_default": LlamaCpp
+            },
             "gateways": {}
         },
         "openai": {
@@ -95,14 +98,17 @@ class LanguageModel(object):
         """
         if self.representation["type"] in self.supported_types:
             gateway = self.supported_types[self.representation["type"]]["gateways"].get(
-                self.representation.get("gateway"))
+                self.representation.get("gateway", "_default"))
             loader = self.supported_types[self.representation["type"]]["loaders"].get(
-                self.representation["loader"])
+                self.representation.get("loader", "_default"))
             if gateway is not None:
                 loader_args, loader_kwargs = gateway(
                     loader_args, loader_kwargs)
-            self.instance = loader["instance"](*loader_args, **loader_kwargs)
-            self.instance_generate = getattr(self.instance, loader["generate"])
+            if loader:
+                self.instance = loader["instance"](
+                    *loader_args, **loader_kwargs)
+                self.instance_generate = getattr(
+                    self.instance, loader["generate"])
 
     def generate(self, query: str) -> Optional[Any]:
         """
