@@ -6,7 +6,10 @@
 ****************************************************
 """
 import unittest
+import os
+import shutil
 from typing import Optional, Any
+from src.configuration import configuration as cfg
 from src.model.backend_control.dataclasses import create_or_load_database
 from src.model.backend_control import llm_pool as test_llm_pool
 
@@ -53,14 +56,18 @@ class DataclassesTest(unittest.TestCase):
         """
         Class method for setting up test case.
         """
-        pass
+        if not os.path.exists(cfg.PATHS.TEST_PATH):
+            os.makedirs(cfg.PATHS.TEST_PATH)
+        cls.data_infrastructure = create_or_load_database(
+            f"sqlite:///{cfg.PATHS.TEST_PATH}/backend.db")
 
     @classmethod
     def tearDownClass(cls):
         """
         Class method for setting tearing down test case.
         """
-        pass
+        del cls.data_infrastructure
+        shutil.rmtree(cfg.PATHS.TEST_PATH)
 
     @classmethod
     def setup_class(cls):
@@ -87,7 +94,7 @@ class LLMPoolTest(unittest.TestCase):
         """
         Class method for setting up test case.
         """
-        pass
+        cls.llm_pool = test_llm_pool.LLMPool()
 
     @classmethod
     def tearDownClass(cls):
