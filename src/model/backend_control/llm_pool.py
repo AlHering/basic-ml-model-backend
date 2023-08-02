@@ -6,6 +6,7 @@
 ****************************************************
 """
 from uuid import uuid4
+import asyncio
 from queue import Queue
 from threading import Thread, Event
 from typing import Optional, Any, List
@@ -127,3 +128,36 @@ class LLMPool(object):
         """
         self.threads[target_thread]["input"].put(query)
         return self.threads[target_thread]["output"].get()
+
+
+class AsyncLLMPool(LLMPool):
+    """
+    Controller class for asynchronously handling LLM instances.
+    """
+
+    # Override
+    def prepare_llm(self, llm_configuration: dict) -> str:
+        """
+        Method for preparing LLM instance.
+        :param llm_configuration: LLM configuration.
+        :return: Thread UUID.
+        """
+        uuid = uuid4()
+        self.threads[uuid] = {
+            "input": asyncio.Queue(),
+            "output": asyncio.Queue(),
+            "config": llm_configuration,
+            "running": False
+        }
+        return uuid
+
+    # Override
+    async def generate(self, target_thread: str, query: str) -> Optional[Any]:
+        """
+        Request generation response for query from target LLM.
+        :param target_thread: Target thread.
+        :param query: Query to send.
+        :return: Response.
+        """
+        self.threads[target_thread]["input"].put(query)
+        return await self.threads[target_thread]["output"].get()
