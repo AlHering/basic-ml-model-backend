@@ -10,8 +10,6 @@ import logging
 from dotenv import dotenv_values
 from . import paths as PATHS
 from . import urls as URLS
-from . import flask_frontend_config
-from . import streamlit_frontend_config
 
 
 """
@@ -31,4 +29,3 @@ Backends
 """
 BACKEND_HOST = ENV.get("BACKEND_HOST", "127.0.0.1")
 BACKEND_PORT = ENV.get("BACKEND_PORT", "7861")
-
