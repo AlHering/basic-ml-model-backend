@@ -16,6 +16,7 @@ SOURCE_PATH = os.path.join(PACKAGE_PATH, "src")
 DOCS_PATH = os.path.join(PACKAGE_PATH, "docs")
 SUBMODULE_PATH = os.path.join(SOURCE_PATH, "submodules")
 DATA_PATH = os.path.join(PACKAGE_PATH, "data")
+TEST_PATH = os.path.join(DATA_PATH, "testing")
 PLUGIN_PATH = os.path.join(SOURCE_PATH, "plugins")
 DUMP_PATH = os.path.join(DATA_PATH, "processes", "dumps")
 
