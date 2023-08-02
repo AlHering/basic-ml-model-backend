@@ -29,14 +29,14 @@ class BackendController(object):
             os.makedirs(self.working_directory)
         self.database_uri = cfg.ENV.get(
             "BACKEND_DATABASE", f"sqlite:///{self.working_directory}/backend.db")
+        # TODO: Add typing gateway to dataclass handling -> UUIDs with '-' are not parsed correctly
         representation = create_or_load_database(self.database_uri)
         self.base = representation["base"]
         self.engine = representation["engine"]
         self.model = representation["model"]
         self.session_factory = representation["session_factory"]
-        self.primary_keys = {object_class: self.model[object_class].primary_key.columns.values()[
-            0].name for object_class in self.model}
-
+        self.primary_keys = {
+            object_class: self.model[object_class].__mapper__.primary_key[0].name for object_class in self.model}
         # TODO: Include priority and interrupt system when implemented in LLMPool class.
         self._cache = {}
         self.llm_pool = LLMPool()
