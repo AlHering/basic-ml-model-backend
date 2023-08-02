@@ -44,7 +44,7 @@ class BackendController(object):
         """
         Method for running shutdown process.
         """
-        pass
+        self.llm_pool.stop_all()
 
     def load_instance(self, instance_uuid: str) -> Optional[str]:
         """
@@ -60,6 +60,18 @@ class BackendController(object):
                 "instance", instance_uuid).config)
             self.llm_pool.load_llm(self._cache[instance_uuid])
         return self._cache[instance_uuid]
+
+    def unload_instance(self, instance_uuid: str) -> Optional[str]:
+        """
+        Method for unloading a configured language model instance.
+        :param instance_uuid: Instance UUID.
+        :return: Thread UUID.
+        """
+        if instance_uuid in self._cache:
+            if self.llm_pool.is_running(self._cache[instance_uuid]):
+                self.llm_pool.unload_llm(self._cache[instance_uuid])
+        else:
+            return None
 
     """
     Default object interaction.
