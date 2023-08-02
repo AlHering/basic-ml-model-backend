@@ -43,8 +43,6 @@ INSTANCE = {
     "__table_args__": {"comment": "Instance Table."},
     "uuid": Column(String, primary_key=True, unique=True, nullable=False, server_default=UUID_CREATION,
                    comment="UUID of the model."),
-    "model_uuid": Column(String, ForeignKey(f"model.uuid"),
-                         comment="Registered model to use."),
     "config": Column(JSON, nullable=False,
                      comment="Instance configuration."),
     "created": Column(DateTime, server_default=func.now(),

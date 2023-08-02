@@ -36,6 +36,9 @@ class BackendController(object):
         self.primary_keys = {object_class: self.model[object_class].primary_key.columns.values()[
             0].name for object_class in self.model}
 
+        # TODO: Include priority and interrupt system when implemented in LLMPool class.
+        self.llm_pool = LLMPool()
+
     def shutdown(self) -> None:
         """
         Method for running shutdown process.

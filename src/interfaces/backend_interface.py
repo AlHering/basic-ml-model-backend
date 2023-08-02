@@ -82,14 +82,19 @@ class Endpoints(str, Enum):
     BASE = "/api/v1"
 
     GET_MODELS = f"{BASE}/models/"
-    GET_MODEL = f"{BASE}/model/"
+    GET_MODEL = f"{BASE}/model/{{model_uuid}}"
     POST_MODEL = f"{BASE}/model/"
     PATCH_MODEL = f"{BASE}/model/{{model_uuid}}"
     DELETE_MODEL = f"{BASE}/model/{{model_uuid}}"
 
-    POST_CONFIGURE_INSTANCE = f"{BASE}/instance/configure"
+    GET_INSTANCES = f"{BASE}/instances"
+    GET_INSTANCE = f"{BASE}/instance/{{instance_uuid}}"
+    POST_INSTANCE = f"{BASE}/instance"
+    PATCH_INSTANCE = f"{BASE}/instance/{{instance_uuid}}"
+    DELETE_INSTANCE = f"{BASE}/instance/{{instance_uuid}}"
+
     POST_LOAD_INSTANCE = f"{BASE}/instance/{{instance_uuid}}/load"
-    POST_UNLOAD_INSTANCE =  f"{BASE}/instance/{{instance_uuid}}/unload"
+    POST_UNLOAD_INSTANCE = f"{BASE}/instance/{{instance_uuid}}/unload"
 
     POST_GENERATE = f"{BASE}/instance/{{instance_uuid}}/generate"
 
@@ -168,7 +173,7 @@ async def get_model(model_uuid: str) -> dict:
     :return: Response.
     """
     global CONTROLLER
-    return {"models": CONTROLLER.get_object("model", model_uuid)}
+    return {"model": CONTROLLER.get_object("model", model_uuid)}
 
 
 @BACKEND.post(Endpoints.POST_MODEL)
@@ -209,16 +214,67 @@ async def delete_model(model_uuid: str) -> dict:
                                              model_uuid)}
 
 
-@BACKEND.post(Endpoints.POST_CONFIGURE_INSTANCE)
+"""
+Instance endpoints
+"""
+
+
+@BACKEND.get(Endpoints.GET_INSTANCES)
 @access_validator(status=True)
-async def post_configure(config: dict) -> dict:
+async def get_instances() -> dict:
     """
-    Endpoint for configuring a model.
+    Endpoint for getting available model instance configurations.
     :param config: Config.
     :return: Response.
     """
+    return {"instances": CONTROLLER.get_objects("instance")}
+
+
+@BACKEND.get(Endpoints.GET_INSTANCE)
+@access_validator(status=True)
+async def get_instance(instance_uuid: str) -> dict:
+    """
+    Endpoint for getting a model instance configuration.
+    :param instance_uuid: Instance UUID.
+    :return: Response.
+    """
+    return {"instance": CONTROLLER.get_object("instance", instance_uuid)}
+
+
+@BACKEND.post(Endpoints.POST_INSTANCE)
+@access_validator(status=True)
+async def post_instance(config: dict) -> dict:
+    """
+    Endpoint for posting a model instance configuration.
+    :param config: Instance config.
+    :return: Response.
+    """
     return {"uuid": CONTROLLER.post_object("config",
-                                           config)}
+                                           config=config)}
+
+
+@BACKEND.patch(Endpoints.PATCH_INSTANCE)
+@access_validator(status=True)
+async def patch_instance(config: dict) -> dict:
+    """
+    Endpoint for patching a model instance configuration.
+    :param config: Instance config.
+    :return: Response.
+    """
+    return {"uuid": CONTROLLER.patch_object("config",
+                                            config=config)}
+
+
+@BACKEND.delete(Endpoints.DELETE_INSTANCE)
+@access_validator(status=True)
+async def get_instance(instance_uuid: str) -> dict:
+    """
+    Endpoint for deleting a model instance configuration.
+    :param instance_uuid: Instance UUID.
+    :return: Response.
+    """
+    return {"instance": CONTROLLER.delete_object("instance", instance_uuid)}
+
 
 @BACKEND.post(Endpoints.POST_LOAD_INSTANCE)
 @access_validator(status=True)
@@ -229,6 +285,7 @@ async def load_instance(config_uuid: str) -> dict:
     :return: Response.
     """
     pass
+
 
 @BACKEND.post(Endpoints.POST_UNLOAD_CONTROLLER)
 @access_validator(status=True)
