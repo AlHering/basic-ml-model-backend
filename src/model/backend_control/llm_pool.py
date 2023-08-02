@@ -7,11 +7,13 @@
 """
 from uuid import uuid4
 import asyncio
+from time import sleep
 from queue import Queue
 from threading import Thread, Event
 from typing import Optional, Any, List
 from src.configuration import configuration as cfg
 from src.utility.silver.language_model_utility import spawn_language_model_instance
+from src.utility.bronze import dictionary_utility
 from src.model.backend_control.dataclasses import create_or_load_database
 
 
@@ -77,19 +79,37 @@ class LLMPool(object):
         # TODO: Implement
         pass
 
-    def prepare_llm(self, llm_configuration: dict) -> str:
+    def reset_llm(self, target_thread: str, llm_configuration: dict) -> str:
         """
-        Method for preparing LLM instance.
+        Method for resetting LLM instance to a new config.
+        :param target_thread: Thread of instance.
         :param llm_configuration: LLM configuration.
         :return: Thread UUID.
         """
-        uuid = uuid4()
-        self.threads[uuid] = {
-            "input": Queue(),
-            "output": Queue(),
-            "config": llm_configuration,
-            "running": False
-        }
+        if not dictionary_utility.check_equality(self.threads[target_thread]["config"], llm_configuration):
+            if self.threads[target_thread]["running"]:
+                self.unload_llm(target_thread)
+            self.threads[target_thread]["config"] = llm_configuration
+        return target_thread
+
+    def prepare_llm(self, llm_configuration: dict, given_uuid: str = None) -> str:
+        """
+        Method for preparing LLM instance.
+        :param llm_configuration: LLM configuration.
+        :param given_uuid: Given UUID to run thread under.
+            Defaults to None in which case a new UUID is created.
+        :return: Thread UUID.
+        """
+        uuid = uuid4() if given_uuid is None else given_uuid
+        if uuid not in self.threads:
+            self.threads[uuid] = {
+                "input": Queue(),
+                "output": Queue(),
+                "config": llm_configuration,
+                "running": False
+            }
+        else:
+            self.reset_llm(uuid, llm_configuration)
         return uuid
 
     def load_llm(self, target_thread: str) -> None:
