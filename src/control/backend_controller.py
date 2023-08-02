@@ -85,15 +85,15 @@ class BackendController(object):
         else:
             return None
 
-    def forward_generate(self, instance_uuid: str, query: str) -> Optional[str]:
+    def forward_generate(self, instance_uuid: str, prompt: str) -> Optional[str]:
         """
         Method for forwarding a generate request to an instance.
         :param instance_uuid: Instance UUID.
-        :param query: Query.
+        :param prompt: Prompt.
         :return: Instance UUID.
         """
         self.load_instance(instance_uuid)
-        return self.llm_pool.generate(instance_uuid, query)
+        return self.llm_pool.generate(instance_uuid, prompt)
 
     """
     Default object interaction.

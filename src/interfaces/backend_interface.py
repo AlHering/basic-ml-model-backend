@@ -308,11 +308,11 @@ async def unload_instance(instance_uuid: str) -> dict:
 
 @BACKEND.post(Endpoints.POST_UNLOAD_CONTROLLER)
 @access_validator(status=True)
-async def post_generate(instance_uuid: str, query: str) -> dict:
+async def post_generate(instance_uuid: str, prompt: str) -> dict:
     """
     Endpoint for requesting a generation task from a model instance.
     :param instance_uuid: Instance UUID.
-    :param query: Query.
+    :param prompt: Prompt.
     :return: Response.
     """
     global CONTROLLER

@@ -136,14 +136,14 @@ class LLMPool(object):
         self.threads[target_thread]["thread"].join()
         self.threads[target_thread]["running"] = False
 
-    def generate(self, target_thread: str, query: str) -> Optional[Any]:
+    def generate(self, target_thread: str, prompt: str) -> Optional[Any]:
         """
         Request generation response for query from target LLM.
         :param target_thread: Target thread.
-        :param query: Query to send.
+        :param prompt: Prompt to send.
         :return: Response.
         """
-        self.threads[target_thread]["input"].put(query)
+        self.threads[target_thread]["input"].put(prompt)
         return self.threads[target_thread]["output"].get()
 
 
