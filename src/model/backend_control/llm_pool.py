@@ -44,16 +44,16 @@ class LLMPool(object):
         self.main_switch = Event()
         self.threads = {}
 
-    def kill_all(self) -> None:
+    def stop_all(self) -> None:
         """
-        Method for killing threads.
+        Method for stopping threads.
         """
         self.main_switch.set()
 
-    def kill(self, target_thread: str) -> None:
+    def stop(self, target_thread: str) -> None:
         """
-        Method for killing threads.
-        :param target_thread: Thread to kill.
+        Method for stopping a thread.
+        :param target_thread: Thread to stop.
         """
         self.threads[target_thread]["switch"].set()
 
