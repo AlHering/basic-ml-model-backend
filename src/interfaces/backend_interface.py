@@ -320,7 +320,7 @@ async def post_generate(instance_uuid: str, prompt: str) -> dict:
     :return: Response.
     """
     global CONTROLLER
-    return {"instance": CONTROLLER.forward_generate(instance_uuid, prompt)}
+    return {"result": CONTROLLER.forward_generate(instance_uuid, prompt)}
 
 
 """
