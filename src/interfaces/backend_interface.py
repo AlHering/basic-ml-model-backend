@@ -62,7 +62,6 @@ class Model(BaseModel):
     """
     Dataclass for model representation.
     """
-    uuid: str
     path: str
     type: str
     loader: str
@@ -84,10 +83,10 @@ class Endpoints(str, Enum):
     POST_STOP = f"{BASE}/stop"
 
     GET_MODELS = f"{BASE}/models/"
-    GET_MODEL = f"{BASE}/model/{{model_uuid}}"
+    GET_MODEL = f"{BASE}/model/{{model_id}}"
     POST_MODEL = f"{BASE}/model/"
-    PATCH_MODEL = f"{BASE}/model/{{model_uuid}}"
-    DELETE_MODEL = f"{BASE}/model/{{model_uuid}}"
+    PATCH_MODEL = f"{BASE}/model/{{model_id}}"
+    DELETE_MODEL = f"{BASE}/model/{{model_id}}"
 
     GET_INSTANCES = f"{BASE}/instances"
     GET_INSTANCE = f"{BASE}/instance/{{instance_uuid}}"
@@ -168,14 +167,14 @@ async def get_models() -> dict:
 
 @BACKEND.get(Endpoints.GET_MODEL)
 @access_validator(status=True)
-async def get_model(model_uuid: str) -> dict:
+async def get_model(model_id: int) -> dict:
     """
     Endpoint for getting a specific model.
-    :param model_uuid: Model UUID.
+    :param model_id: Model ID.
     :return: Response.
     """
     global CONTROLLER
-    return {"model": CONTROLLER.get_object("model", model_uuid)}
+    return {"model": CONTROLLER.get_object("model", model_id)}
 
 
 @BACKEND.post(Endpoints.POST_MODEL)
@@ -187,36 +186,36 @@ async def post_model(model: Model) -> dict:
     :return: Response.
     """
     global CONTROLLER
-    return {"uuid": CONTROLLER.post_object("model",
-                                           **model.dict())}
+    return {"id": CONTROLLER.post_object("model",
+                                         **model.dict())}
 
 
 @BACKEND.patch(Endpoints.PATCH_MODEL)
 @access_validator(status=True)
-async def patch_model(model_uuid: str, model: Model) -> dict:
+async def patch_model(model_id: int, patch: dict) -> dict:
     """
     Endpoint for patching a model.
-    :param model_uuid: Model UUID.
-    :param model: Model.
+    :param model_id: Model ID.
+    :param patch: Patch.
     :return: Response.
     """
     global CONTROLLER
-    return {"uuid": CONTROLLER.patch_object("model",
-                                            model_uuid,
-                                            **model.dict())}
+    return {"id": CONTROLLER.patch_object("model",
+                                          model_id,
+                                          **patch)}
 
 
 @BACKEND.delete(Endpoints.DELETE_MODEL)
 @access_validator(status=True)
-async def delete_model(model_uuid: str) -> dict:
+async def delete_model(model_id: int) -> dict:
     """
     Endpoint for deleting a model.
-    :param model_uuid: Model UUID.
+    :param model_id: Model ID.
     :return: Response.
     """
     global CONTROLLER
-    return {"uuid": CONTROLLER.delete_object("model",
-                                             model_uuid)}
+    return {"id": CONTROLLER.delete_object("model",
+                                           model_id)}
 
 
 """
@@ -258,20 +257,23 @@ async def post_instance(config: dict) -> dict:
     """
     global CONTROLLER
     return {"instance": CONTROLLER.post_object("instance",
-                                               config=config)}
+                                               **config)}
 
 
 @BACKEND.patch(Endpoints.PATCH_INSTANCE)
 @access_validator(status=True)
-async def patch_instance(config: dict) -> dict:
+async def patch_instance(instance_uuid: str, patch: dict) -> dict:
     """
     Endpoint for patching a model instance configuration.
-    :param config: Instance config.
+    :param instance_uuid: Instance UUID.
+    :param patch: Instance patch.
     :return: Response.
     """
     global CONTROLLER
-    return {"instance": CONTROLLER.patch_object("instance",
-                                                config=config)}
+    print(instance_uuid)
+    print(patch)
+    return {"instance": CONTROLLER.patch_object("instance", instance_uuid,
+                                                **patch)}
 
 
 @BACKEND.delete(Endpoints.DELETE_INSTANCE)
