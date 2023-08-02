@@ -7,6 +7,7 @@
 """
 import unittest
 import re
+import requests
 from src.configuration import configuration as cfg
 
 
@@ -15,8 +16,31 @@ class ConfigurationTest(unittest.TestCase):
     Test case class for testing URL configuration.
     """
 
-    def test_urls(self):
-        for attribute in dir(cfg.URLS)
+    def test_urls(self) -> None:
+        """
+        Test method for testing configured URLs.
+        """
+        for attribute in [attribute for attribute in dir(cfg.URLS) if re.fullmatch(r"^[A-Z]+?_URL", attribute)]:
+            resp = requests.get(getattr(cfg.URLS, attribute))
+            self.assertEqual(resp.status_code, 200)
+
+    def test_paths(self) -> None:
+        """
+        Test method for testing configured paths.
+        """
+        for attribute in [attribute.replace(" =", "") for attribute in dir(cfg.PATHS) if re.fullmatch(r"^[A-Z]+?_PATH =", attribute)]:
+            path = getattr(cfg.PATHS, attribute)
+            self.assertTrue(re.fullmatch(
+                r"^(/|[A-Z]:\\){1}((/|\\)[a-zA-Z0-9#~\-_,'!\"§\$%&\(\)\[\]=`'])+", path))
+            self.assertTrue(cfg.PATHS.PACKAGE_PATH in path)
+
+    def test_configuration(self) -> None:
+        """
+        Test method for testing central configuration.
+        """
+        for attribute in ["ENV", "LOGGER", "BACKEND_HOST", "BACKEND_PORT"]:
+            self.assertTrue(hasattr(cfg, attribute))
+            self.assertFalse(getattr(cfg, attribute) is None)
 
     @classmethod
     def setUpClass(cls):
