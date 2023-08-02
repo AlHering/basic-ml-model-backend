@@ -10,7 +10,7 @@ import asyncio
 from queue import Queue
 from threading import Thread, Event
 from typing import Optional, Any
-from src.utility.silver.language_model_utility import spawn_language_model_instance
+from src.utility.gold.transformer_model_utility import spawn_language_model_instance
 from src.utility.bronze import dictionary_utility
 
 
