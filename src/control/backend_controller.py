@@ -37,6 +37,7 @@ class BackendController(object):
             0].name for object_class in self.model}
 
         # TODO: Include priority and interrupt system when implemented in LLMPool class.
+        self._cache = {}
         self.llm_pool = LLMPool()
 
     def shutdown(self) -> None:
@@ -44,6 +45,25 @@ class BackendController(object):
         Method for running shutdown process.
         """
         pass
+
+    def load_instance(self, instance_uuid: str) -> Optional[str]:
+        """
+        Method for loading a configured language model instance.
+        :param instance_uuid: Instance UUID.
+        :return: Thread UUID.
+        """
+        if instance_uuid in self._cache:
+            if not self.llm_pool.is_running(self._cache[instance_uuid]):
+                self.llm_pool.load_llm(self._cache[instance_uuid])
+        else:
+            self._cache[instance_uuid] = self.llm_pool.prepare_llm(self.get_object(
+                "instance", instance_uuid).config)
+            self.llm_pool.load_llm(self._cache[instance_uuid])
+        return self._cache[instance_uuid]
+
+    """
+    Default object interaction.
+    """
 
     def get_objects(self, object_type: str) -> List[Any]:
         """
