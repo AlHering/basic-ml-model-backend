@@ -25,7 +25,7 @@ def run_llm(main_switch: Event, current_switch: Event, llm_configuraiton: dict, 
     """
     llm = spawn_language_model_instance(llm_configuraiton)
     while not main_switch.wait(0.5) or current_switch(0.5):
-        output_queue.put(llm.handle_query(input_queue.get()))
+        output_queue.put(llm.generate(input_queue.get()))
 
 
 class LLMPool(object):
@@ -107,9 +107,9 @@ class LLMPool(object):
         self.threads[target_thread]["switch"].set()
         self.threads[target_thread]["thread"].join()
 
-    def query(self, target_thread: str, query: str) -> Optional[Any]:
+    def generate(self, target_thread: str, query: str) -> Optional[Any]:
         """
-        Send query to target LLM.
+        Request generation response for query from target LLM.
         :param target_thread: Target thread.
         :param query: Query to send.
         :return: Response.
