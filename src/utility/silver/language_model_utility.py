@@ -15,7 +15,7 @@ class LanguageModel(ABC):
     """
 
     @abstractmethod
-    def handle_query(query: str) -> Any:
+    def generate(query: str) -> Any:
         """
         Main handler method for wrapping language model capabilities.
         :param query: User query.
