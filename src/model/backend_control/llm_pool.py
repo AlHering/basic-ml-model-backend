@@ -57,6 +57,14 @@ class LLMPool(object):
         """
         self.threads[target_thread]["switch"].set()
 
+    def is_running(self, target_thread: str) -> bool:
+        """
+        Method for checking whether thread is running.
+        :param target_thread: Thread to check.
+        :return: True, if thread is running, else False.
+        """
+        return self.threads[target_thread]["running"]
+
     def validate_resources(self, llm_configuration: dict, queue_spawns: bool) -> bool:
         """
         Method for validating resources before LLM instantiation.
@@ -78,7 +86,8 @@ class LLMPool(object):
         self.threads[uuid] = {
             "input": Queue(),
             "output": Queue(),
-            "config": llm_configuration
+            "config": llm_configuration,
+            "running": False
         }
         return uuid
 
@@ -98,6 +107,7 @@ class LLMPool(object):
                 self.threads[target_thread]["output"],
             )
         ).start()
+        self.threads[target_thread]["running"] = True
 
     def unload_llm(self, target_thread: str) -> None:
         """
@@ -106,6 +116,7 @@ class LLMPool(object):
         """
         self.threads[target_thread]["switch"].set()
         self.threads[target_thread]["thread"].join()
+        self.threads[target_thread]["running"] = False
 
     def generate(self, target_thread: str, query: str) -> Optional[Any]:
         """
