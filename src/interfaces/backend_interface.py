@@ -184,6 +184,7 @@ async def post_model(model: Model) -> dict:
     :param model: Model.
     :return: Response.
     """
+    global CONTROLLER
     return {"uuid": CONTROLLER.post_object("model",
                                            **model.dict())}
 
@@ -197,6 +198,7 @@ async def patch_model(model_uuid: str, model: Model) -> dict:
     :param model: Model.
     :return: Response.
     """
+    global CONTROLLER
     return {"uuid": CONTROLLER.patch_object("model",
                                             model_uuid,
                                             **model.dict())}
@@ -210,6 +212,7 @@ async def delete_model(model_uuid: str) -> dict:
     :param model_uuid: Model UUID.
     :return: Response.
     """
+    global CONTROLLER
     return {"uuid": CONTROLLER.delete_object("model",
                                              model_uuid)}
 
@@ -227,6 +230,7 @@ async def get_instances() -> dict:
     :param config: Config.
     :return: Response.
     """
+    global CONTROLLER
     return {"instances": CONTROLLER.get_objects("instance")}
 
 
@@ -238,6 +242,7 @@ async def get_instance(instance_uuid: str) -> dict:
     :param instance_uuid: Instance UUID.
     :return: Response.
     """
+    global CONTROLLER
     return {"instance": CONTROLLER.get_object("instance", instance_uuid)}
 
 
@@ -249,8 +254,9 @@ async def post_instance(config: dict) -> dict:
     :param config: Instance config.
     :return: Response.
     """
-    return {"uuid": CONTROLLER.post_object("config",
-                                           config=config)}
+    global CONTROLLER
+    return {"instance": CONTROLLER.post_object("instance",
+                                               config=config)}
 
 
 @BACKEND.patch(Endpoints.PATCH_INSTANCE)
@@ -261,30 +267,33 @@ async def patch_instance(config: dict) -> dict:
     :param config: Instance config.
     :return: Response.
     """
-    return {"uuid": CONTROLLER.patch_object("config",
-                                            config=config)}
+    global CONTROLLER
+    return {"instance": CONTROLLER.patch_object("instance",
+                                                config=config)}
 
 
 @BACKEND.delete(Endpoints.DELETE_INSTANCE)
 @access_validator(status=True)
-async def get_instance(instance_uuid: str) -> dict:
+async def delete_instance(instance_uuid: str) -> dict:
     """
     Endpoint for deleting a model instance configuration.
     :param instance_uuid: Instance UUID.
     :return: Response.
     """
+    global CONTROLLER
     return {"instance": CONTROLLER.delete_object("instance", instance_uuid)}
 
 
 @BACKEND.post(Endpoints.POST_LOAD_INSTANCE)
 @access_validator(status=True)
-async def load_instance(config_uuid: str) -> dict:
+async def load_instance(instance_uuid: str) -> dict:
     """
     Endpoint for loading a model instance.
-    :param config_uuid: Config UUID.
+    :param instance_uuid: Instance UUID.
     :return: Response.
     """
-    pass
+    global CONTROLLER
+    return {"instance": CONTROLLER.load_instance(instance_uuid)}
 
 
 @BACKEND.post(Endpoints.POST_UNLOAD_CONTROLLER)
@@ -295,7 +304,8 @@ async def unload_instance(instance_uuid: str) -> dict:
     :param instance_uuid: Instance UUID.
     :return: Response.
     """
-    pass
+    global CONTROLLER
+    return {"instance": CONTROLLER.unload_instance(instance_uuid)}
 
 
 @BACKEND.post(Endpoints.POST_UNLOAD_CONTROLLER)
@@ -307,6 +317,7 @@ async def post_generate(instance_uuid: str, query: str) -> dict:
     :param query: Query.
     :return: Response.
     """
+    global CONTROLLER
     pass
 
 
