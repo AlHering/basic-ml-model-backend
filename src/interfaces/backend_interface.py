@@ -79,6 +79,10 @@ class Endpoints(str, Enum):
     """
     BASE = "/api/v1"
 
+    GET_STATUS = f"{BASE}/status"
+    POST_START = f"{BASE}/start"
+    POST_STOP = f"{BASE}/stop"
+
     GET_MODELS = f"{BASE}/models/"
     GET_MODEL = f"{BASE}/model/{{model_uuid}}"
     POST_MODEL = f"{BASE}/model/"
@@ -294,7 +298,7 @@ async def load_instance(instance_uuid: str) -> dict:
     return {"instance": CONTROLLER.load_instance(instance_uuid)}
 
 
-@BACKEND.post(Endpoints.POST_UNLOAD_CONTROLLER)
+@BACKEND.post(Endpoints.POST_UNLOAD_INSTANCE)
 @access_validator(status=True)
 async def unload_instance(instance_uuid: str) -> dict:
     """
@@ -306,7 +310,7 @@ async def unload_instance(instance_uuid: str) -> dict:
     return {"instance": CONTROLLER.unload_instance(instance_uuid)}
 
 
-@BACKEND.post(Endpoints.POST_UNLOAD_CONTROLLER)
+@BACKEND.post(Endpoints.POST_GENERATE)
 @access_validator(status=True)
 async def post_generate(instance_uuid: str, prompt: str) -> dict:
     """
@@ -316,7 +320,7 @@ async def post_generate(instance_uuid: str, prompt: str) -> dict:
     :return: Response.
     """
     global CONTROLLER
-    pass
+    return {"instance": CONTROLLER.forward_generate(instance_uuid, prompt)}
 
 
 """
