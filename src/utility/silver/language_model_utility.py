@@ -10,6 +10,41 @@ from abc import ABC, abstractmethod
 from pydantic import BaseModel
 from langchain.llms import LlamaCpp
 
+"""
+Wrapper classes
+"""
+
+
+class LlamaCppWrapper(object):
+    """
+    Wrapper class for LlamaCpp.
+    """
+
+    def __init__(self, representation: dict) -> None:
+        """
+        Initiation method.
+        :param representation: Language model representation.
+        """
+        self.llm = LlamaCpp().generate()
+
+    def generate(self, query: str) -> Optional[Any]:
+        """
+        Generation method.
+        :param query: User query.
+        :return: Response, if generation method is available else None.
+        """
+        return self.llm.generate([query])
+
+
+"""
+Parameter gateways
+"""
+
+
+"""
+Parameterized Language Models
+"""
+
 
 class LanguageModel(object):
     """
@@ -18,7 +53,7 @@ class LanguageModel(object):
     supported_types = {
         "llamacpp": {
             "loaders": {
-                "_default": LlamaCpp
+                "_default": LlamaCppWrapper
             },
             "gateways": {}
         },
@@ -77,24 +112,20 @@ class LanguageModel(object):
 
     }
 
-    def __init__(self, representation: dict, *loader_args: Optional[Any], **loader_kwargs: Optional[Any]) -> None:
+    def __init__(self, representation: dict) -> None:
         """
         Initiation method.
         :param representation: Language model representation.
-        :param loader_args: Loader arguments.
-        :param loader_kwargs: Loader keyword arguments.
         """
         self.representation = representation
         self.instance = None
         self.instance_generate = None
 
-        self._load_instance(*loader_args, **loader_kwargs)
+        self._load_instance()
 
-    def _load_instance(self, *loader_args: Optional[Any], **loader_kwargs: Optional[Any]) -> None:
+    def _load_instance(self,) -> None:
         """
         Internal method for loading instance.
-        :param loader_args: Loader arguments.
-        :param loader_kwargs: Loader keyword arguments.
         """
         if self.representation["type"] in self.supported_types:
             gateway = self.supported_types[self.representation["type"]]["gateways"].get(
@@ -102,8 +133,7 @@ class LanguageModel(object):
             loader = self.supported_types[self.representation["type"]]["loaders"].get(
                 self.representation.get("loader", "_default"))
             if gateway is not None:
-                loader_args, loader_kwargs = gateway(
-                    loader_args, loader_kwargs)
+                loader_args, loader_kwargs = gateway(self.representation)
             if loader:
                 self.instance = loader["instance"](
                     *loader_args, **loader_kwargs)
