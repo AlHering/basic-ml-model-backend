@@ -241,6 +241,18 @@ async def unload_instance(instance_uuid: str) -> dict:
     pass
 
 
+@BACKEND.post(Endpoints.POST_UNLOAD_CONTROLLER)
+@access_validator(status=True)
+async def post_generate(instance_uuid: str, query: str) -> dict:
+    """
+    Endpoint for requesting a generation task from a model instance.
+    :param instance_uuid: Instance UUID.
+    :param query: Query.
+    :return: Response.
+    """
+    pass
+
+
 """
 Backend runner
 """
