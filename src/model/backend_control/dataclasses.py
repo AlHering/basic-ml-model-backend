@@ -45,6 +45,8 @@ INSTANCE = {
                    comment="UUID of the model."),
     "model_uuid": Column(String, ForeignKey(f"model.uuid"),
                          comment="Registered model to use."),
+    "config": Column(JSON, nullable=False,
+                     comment="Instance configuration."),
     "created": Column(DateTime, server_default=func.now(),
                       comment="Timestamp of creation."),
     "updated": Column(DateTime, server_default=text("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"),
