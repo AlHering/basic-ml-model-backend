@@ -54,7 +54,7 @@ class BackendController(object):
         """
         Method for loading a configured language model instance.
         :param instance_uuid: Instance UUID.
-        :return: Thread UUID.
+        :return: Instance UUID if process as successful.
         """
         if instance_uuid in self._cache:
             if not self.llm_pool.is_running(self._cache[instance_uuid]["thread"]):
@@ -72,20 +72,29 @@ class BackendController(object):
                 "instance", instance_uuid).config)
             self.llm_pool.load_llm(self._cache[instance_uuid])
             self._cache[instance_uuid]["started"] = dt.now()
-        return self._cache[instance_uuid]
+        return instance_uuid
 
     def unload_instance(self, instance_uuid: str) -> Optional[str]:
         """
         Method for unloading a configured language model instance.
         :param instance_uuid: Instance UUID.
-        :return: Thread UUID.
+        :return: Instance UUID if process as successful.
         """
         if instance_uuid in self._cache:
             if self.llm_pool.is_running(self._cache[instance_uuid]["thread"]):
                 self.llm_pool.unload_llm(self._cache[instance_uuid]["thread"])
-            return self._cache[instance_uuid]["thread"]
+            return instance_uuid
         else:
             return None
+
+    def forward_generate(self, instance_uuid: str, query: str) -> Optional[str]:
+        """
+        Method for forwarding a generate request to an instance.
+        :param instance_uuid: Instance UUID.
+        :param query: Query.
+        :return: Instance UUID.
+        """
+        return
 
     """
     Default object interaction.
