@@ -22,7 +22,11 @@ MODEL = {
     "model_type": Column(String, nullable=False,
                          comment="Type of the model."),
     "model_loader": Column(String, nullable=False,
-                           comment="Loader for the model.")
+                           comment="Loader for the model."),
+    "created": Column(DateTime, server_default=func.now(),
+                             comment="Timestamp of creation."),
+    "updated": Column(DateTime, server_default=text("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"),
+                             comment="Timestamp of last update.")
 }
 
 
@@ -32,7 +36,11 @@ INSTANCE = {
     "uuid": Column(String, primary_key=True, unique=True, nullable=False,
                    comment="UUID of the model instance."),
     "model_uuid": Column(String, ForeignKey(f"model.uuid"),
-                                   comment="Registered model to use.")
+                                   comment="Registered model to use."),
+    "created": Column(DateTime, server_default=func.now(),
+                             comment="Timestamp of creation."),
+    "updated": Column(DateTime, server_default=text("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"),
+                             comment="Timestamp of last update.")
 }
 
 
@@ -45,9 +53,9 @@ LOG = {
                               comment="Request, sent to the backend."),
     "response": Column(JSON, comment="Response, given by the backend."),
     "started": Column(DateTime, server_default=func.now(),
-                             comment="Timestamp of creation."),
+                             comment="Timestamp of request recieval."),
     "finished": Column(DateTime, server_default=text("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"),
-                             comment="Timestamp of last update.")
+                             comment="Timestamp of reponse transmission.")
 
 }
 
