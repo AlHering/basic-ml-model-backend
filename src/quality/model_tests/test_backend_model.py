@@ -6,8 +6,41 @@
 ****************************************************
 """
 import unittest
+from typing import Optional, Any
 from src.model.backend_control.dataclasses import create_or_load_database
-from src.model.backend_control.llm_pool import LLMPool
+from src.model.backend_control import llm_pool as test_llm_pool
+
+
+def test_spawner(config: str) -> Optional[Any]:
+    """
+    Function for spawning language model test instance based on configuration.
+    :param config: Instance configuration.
+    :return: Test language model instance.
+    """
+    class TestLM(object):
+        """
+        Test language model class.
+        """
+
+        def __init__(self, representation: dict) -> None:
+            """
+            Initiation method.
+            :param representation: Test dictionary for translating prompt to generation reponse.
+            """
+            self.representation = representation
+
+        def generate(self, prompt: str) -> Optional[Any]:
+            """
+            Generation method.
+            :param prompt: User prompt.
+            :return: Response, if generation method is available else None.
+            """
+            return self.representation[prompt]
+
+    return TestLM(config)
+
+
+test_llm_pool.spawn_language_model_instance = test_spawner
 
 
 class DataclassesTest(unittest.TestCase):
@@ -61,7 +94,7 @@ class LLMPoolTest(unittest.TestCase):
         """
         Class method for setting tearing down test case.
         """
-        pass
+        del cls.llm_pool
 
     @classmethod
     def setup_class(cls):
