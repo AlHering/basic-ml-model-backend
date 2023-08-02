@@ -33,6 +33,8 @@ class BackendController(object):
         self.engine = representation["engine"]
         self.model = representation["model"]
         self.session_factory = representation["session_factory"]
+        self.primary_keys = {object_class: self.model[object_class].primary_key.columns.values()[
+            0].name for object_class in self.model}
 
     def shutdown(self) -> None:
         """
@@ -48,68 +50,69 @@ class BackendController(object):
         """
         return self.session_factory().query(self.model[object_type]).all()
 
-    def get_object(self, object_type: str, object_uuid: str) -> Optional[Any]:
+    def get_object(self, object_type: str, object_id: Any) -> Optional[Any]:
         """
         Method for acquiring objects.
         :param object_type: Target object type.
-        :param object_uuid: Target UUID.
-        :return: An object of given type and UUID, if found.
+        :param object_id: Target ID.
+        :return: An object of given type and ID, if found.
         """
         return self.session_factory().query(self.model[object_type]).filter(
-            self.model[object_type].uuid == object_uuid
+            getattr(self.model[object_type],
+                    self.primary_keys[object_type]) == object_id
         ).first()
 
-    def post_object(self, object_type: str, **object_attributes: Optional[Any]) -> Optional[str]:
+    def post_object(self, object_type: str, **object_attributes: Optional[Any]) -> Optional[Any]:
         """
         Method for adding an object.
         :param object_type: Target object type.
         :param object_attributes: Object attributes.
-        :return: Object UUID of added object, if adding was successful.
+        :return: Object ID of added object, if adding was successful.
         """
-        if "uuid" not in object_attributes:
-            object_attributes["uuid"] = str(uuid4())
         obj = self.model[object_type](**object_attributes)
         with self.session_factory() as session:
             session.add(obj)
             session.commit()
             session.refresh(obj)
-        return obj.uuid
+        return getattr(obj, self.primary_keys[object_type])
 
-    def patch_object(self, object_type: str, object_uuid: str, **object_attributes: Optional[Any]) -> Optional[str]:
+    def patch_object(self, object_type: str, object_id: Any, **object_attributes: Optional[Any]) -> Optional[Any]:
         """
         Method for patching an object.
         :param object_type: Target object type.
-        :param object_uuid: Target UUID.
+        :param object_id: Target ID.
         :param object_attributes: Object attributes.
-        :return: Object UUID of patched object, if patching was successful.
+        :return: Object ID of patched object, if patching was successful.
         """
         result = None
         with self.session_factory() as session:
             obj = session.query(self.model[object_type]).filter(
-                self.model[object_type].uuid == object_uuid
+                getattr(self.model[object_type],
+                        self.primary_keys[object_type]) == object_id
             ).first()
             if obj:
                 for attribute in object_attributes:
                     setattr(obj, attribute, object_attributes[attribute])
                 session.commit()
-                result = obj.uuid
+                result = getattr(obj, self.primary_keys[object_type])
         return result
 
-    def delete_object(self, object_type: str, object_uuid: str) -> Optional[str]:
+    def delete_object(self, object_type: str, object_id: Any) -> Optional[Any]:
         """
         Method for deleting an object.
         :param object_type: Target object type.
-        :param object_uuid: Target UUID.
+        :param object_id: Target ID.
         :param object_attributes: Object attributes.
-        :return: Object UUID of patched object, if deletion was successful.
+        :return: Object ID of patched object, if deletion was successful.
         """
         result = None
         with self.session_factory() as session:
             obj = session.query(self.model[object_type]).filter(
-                self.model[object_type].uuid == object_uuid
+                getattr(self.model[object_type],
+                        self.primary_keys[object_type]) == object_id
             ).first()
             if obj:
                 obj.delete()
                 session.commit()
-                result = obj.uuid
+                result = getattr(obj, self.primary_keys[object_type])
         return result
