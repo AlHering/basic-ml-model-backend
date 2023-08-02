@@ -68,10 +68,12 @@ LOG = {
 }
 
 
-def create_or_load_database(database_uri: str) -> dict:
+def create_or_load_database(database_uri: str, dialect: str = "sqlite") -> dict:
     """
     Function for creating or loading backend database.
     :param database_uri: Database URI.
+    :param dialect: Database dialect.
+        Defaults to "sqlite".
     """
     base = automap_base()
     engine = sqlalchemy_utility.get_engine(database_uri)
