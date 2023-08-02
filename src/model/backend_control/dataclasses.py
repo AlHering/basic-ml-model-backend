@@ -5,24 +5,11 @@
 *            (c) 2023 Alexander Hering             *
 ****************************************************
 """
-from sqlalchemy import Column, String, JSON, ForeignKey, BLOB
+from sqlalchemy import Column, String, JSON, ForeignKey, BLOB, Integer, DateTime, func, text
 from sqlalchemy.ext.automap import automap_base, classname_for_table
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from src.utility.bronze import sqlalchemy_utility
-
-
-CONTROLLER = {
-    "__tablename__": "controller",
-    "__table_args__": {"comment": "Controller Table."},
-    "uuid": Column(String, primary_key=True, unique=True, nullable=False,
-                   comment="UUID of the controller."),
-    "language_model_uuid": Column(String, ForeignKey(f"model.uuid"),
-                                  comment="Registered language model to use."),
-
-    "knowledgebase_uuid": Column(String, ForeignKey(f"knowledgebase.uuid"),
-                                 comment="Registered knowledgebase to use.")
-}
 
 
 MODEL = {
@@ -39,40 +26,28 @@ MODEL = {
 }
 
 
-KNOWLEDGEBASE = {
-    "__tablename__": "knowledgebase",
-    "__table_args__": {"comment": "Knowledgebase Table."},
+INSTANCE = {
+    "__tablename__": "instance",
+    "__table_args__": {"comment": "Instance Table."},
     "uuid": Column(String, primary_key=True, unique=True, nullable=False,
-                   comment="UUID of the knowledgebase."),
-    "path": Column(String, nullable=False,
-                   comment="Path to the knowledgebase."),
-    "loader": Column(String, nullable=False,
-                     comment="Loader for knowledgebase."),
-    "embedding_model_uuid": Column(String, ForeignKey(f"model.uuid"),
-                                   comment="Registered embedding model to use."),
-    "documents": relationship("Document")
-
+                   comment="UUID of the model instance."),
+    "model_uuid": Column(String, ForeignKey(f"model.uuid"),
+                                   comment="Registered model to use.")
 }
 
 
-DOCUMENT = {
-    "__tablename__": "document",
-    "__table_args__": {"comment": "Document Table."},
-    "uuid": Column(String, primary_key=True, unique=True, nullable=False,
-                   comment="UUID of the document."),
-    "content": Column(BLOB, comment="Content of the document."),
-    "meta_data": Column(JSON, comment="Metadata of the document.")
-}
-
-
-CONVERSATION = {
-    "__tablename__": "conversation",
-    "__table_args__": {"comment": "Conversation Table."},
-    "uuid": Column(String, primary_key=True, unique=True, nullable=False,
-                   comment="UUID of the conversation."),
-    "controller_uuid": Column(String, ForeignKey(f"model.uuid"),
-                              comment="UUID of managing controller."),
-    "conversation_content": Column(JSON, comment="Conversation content.")
+LOG = {
+    "__tablename__": "log",
+    "__table_args__": {"comment": "Logging Table."},
+    "id": Column(Integer, primary_key=True, autoincrement=True, unique=True, nullable=False,
+                   comment="ID of the logging entry."),
+    "request": Column(JSON, nullable=False,
+                              comment="Request, sent to the backend."),
+    "response": Column(JSON, comment="Response, given by the backend."),
+    "started": Column(DateTime, server_default=func.now(),
+                             comment="Timestamp of creation."),
+    "finished": Column(DateTime, server_default=text("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"),
+                             comment="Timestamp of last update.")
 
 }
 
@@ -94,7 +69,7 @@ def create_or_load_database(database_uri: str) -> dict:
     if not model:
         base = declarative_base()
 
-        for dataclass_content in [CONTROLLER, MODEL, KNOWLEDGEBASE, DOCUMENT, CONVERSATION]:
+        for dataclass_content in [MODEL, INSTANCE, LOG]:
             if dataclass_content["__tablename__"] not in model:
                 model[dataclass_content["__tablename__"]] = type(
                     dataclass_content["__tablename__"].title(), (base,), dataclass_content)
