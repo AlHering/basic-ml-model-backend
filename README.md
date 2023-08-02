@@ -20,3 +20,13 @@ Secundarily meant for utility prototyping.
 5. start the backend (e.g. `python start_backend.py`) - the FastAPI-Backend, via which LLM and vectorstore functinality is accessed. The backend can already be accessed via the logged uvicorn URL + /docs (Swagger UI)
 6. start the streamlit app(s) (e.g. `streamlit run streamlit_main.py`) - the streamlit prototype app(s) will be started and a browser window should automatically open
 7. (optional) start the umbrella flask app (e.g. `python flask_main.py`) - the flask app which integrates the streamlit apps will be started and can be accessed via the logged URL
+
+
+## TODO
+- implement parameterized model loading
+- implement model search, downloading and metadata handling
+    - implement model merging and finetuning ?
+- encorporate models into LLMPool
+
+- experiment around resource detection and planning
+- experiment around containered LLM services with scheduling and priority support
