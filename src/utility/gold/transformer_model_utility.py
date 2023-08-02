@@ -87,7 +87,7 @@ class LocalHFLM(LanguageModel):
         return self.model(**inputs)
 
 
-class LocalHFEmbeddingModel(LanguageModel):
+class LocalHFEmbeddingLM(LanguageModel):
     """
     General LM class for local Huggingface models for embedding.
     """
@@ -138,73 +138,104 @@ Parameter gateways
 """
 Parameterized Language Models
 """
-supported_types = {
+SUPPORTED_TYPES = {
     "llamacpp": {
         "loaders": {
-            "_default": LlamaCppWrapper
+            "_default": LlamaCppLM
         },
         "gateways": {}
     },
     "openai": {
-        "loaders": {},
+        "loaders": {
+            "_default": None
+        },
         "gateways": {}
     },
     "gpt4all": {
-        "loaders": {},
+        "loaders": {
+            "_default": None
+        },
         "gateways": {}
     },
     "bedrock": {
-        "loaders": {},
+        "loaders": {
+            "_default": None
+        },
         "gateways": {}
     },
     "cohere": {
-        "loaders": {},
+        "loaders": {
+            "_default": None
+        },
         "gateways": {}
     },
     "google_palm": {
-        "loaders": {},
+        "loaders": {
+            "_default": None
+        },
         "gateways": {}
     },
     "huggingface": {
-        "loaders": {},
+        "loaders": {
+            "_default": LocalHFLM,
+            "embedding": LocalHFEmbeddingLM
+        },
         "gateways": {}
     },
     "koboldai": {
-        "loaders": {},
+        "loaders": {
+            "_default": None
+        },
         "gateways": {}
     },
     "mosaicml": {
-        "loaders": {},
+        "loaders": {
+            "_default": None
+        },
         "gateways": {}
     },
     "replicate": {
-        "loaders": {},
+        "loaders": {
+            "_default": None
+        },
         "gateways": {}
     },
     "anthropic": {
-        "loaders": {},
+        "loaders": {
+            "_default": None
+        },
         "gateways": {}
     },
     "openllm": {
-        "loaders": {},
+        "loaders": {
+            "_default": None
+        },
         "gateways": {}
     },
     "openlm": {
-        "loaders": {},
+        "loaders": {
+            "_default": None
+        },
         "gateways": {}
     },
     "rwkv": {
-        "loaders": {},
+        "loaders": {
+            "_default": None
+        },
         "gateways": {}
     }
 
 }
 
 
-def spawn_language_model_instance(config: str) -> LanguageModel:
+def spawn_language_model_instance(config: str) -> Optional[LanguageModel]:
     """
     Function for spawning language model instance based on configuration.
     :param config: Instance configuration.
-    :return: Language model instance.
+    :return: Language model instance if configuration was successful else None.
     """
-    pass
+    lm = SUPPORTED_TYPES.get(config.get("type"), {}).get(
+        "loaders", {}).get(config.get("loader", "_default"))
+    if lm is not None:
+        lm = lm(config)
+    return lm
