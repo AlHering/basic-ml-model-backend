@@ -49,7 +49,7 @@ class LLMPoolTest(unittest.TestCase):
         """
         Method for testing thread lifecycle
         """
-        thread_uuid = self.llm_pool.prepare_llm()
+        thread_uuid = self.llm_pool.prepare_llm(self.test_config)
         self.assertEqual(len(list(self.llm_pool.threads.keys())), 1)
         self.assertTrue(thread_uuid in self.llm_pool.threads)
         self.assertTrue(all(key in self.llm_pool.threads[thread_uuid] for key in [
