@@ -6,12 +6,11 @@
 ****************************************************
 """
 import copy
-from sqlalchemy import Column, String, Boolean, Integer, JSON, Text, DateTime, CHAR, ForeignKey, Table, Float, BLOB, TEXT
+from sqlalchemy import Column, String, Boolean, Integer, JSON, Text, DateTime, CHAR, ForeignKey, Table, Float, BLOB, Uuid
 from sqlalchemy.orm import Session, relationship
 from sqlalchemy import and_, or_, not_
 from sqlalchemy import create_engine
 from sqlalchemy.ext.automap import automap_base, classname_for_table
-from sqlalchemy.dialects.mysql import LONGTEXT
 from sqlalchemy import orm, inspect
 from sqlalchemy.engine import create_engine, Engine
 from sqlalchemy.sql import text
@@ -37,6 +36,8 @@ SQLALCHEMY_TYPING_DICTIONARY = {
     "longtext": Text,
     "float_": Float,
     "float": Float,
+    "uuid": Uuid,
+    "blob": BLOB
 }
 
 

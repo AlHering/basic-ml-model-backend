@@ -7,13 +7,12 @@
 """
 import unittest
 import os
-import copy
 import shutil
 from time import sleep
 from datetime import datetime
 from typing import Optional, Any
 from src.configuration import configuration as cfg
-from src.model.backend_control.dataclasses import create_or_load_database, sqlalchemy_utility, Uuid
+from src.model.backend_control.dataclasses import create_or_load_database, sqlalchemy_utility
 from src.model.backend_control import llm_pool as test_llm_pool
 
 
@@ -87,7 +86,7 @@ class DataclassesTest(unittest.TestCase):
             list(self.data_infrastructure["base"].metadata.tables["instance"].primary_key.columns)[0].name, "uuid")
 
         self.assertTrue(
-            isinstance(list(self.data_infrastructure["base"].metadata.tables["instance"].primary_key.columns)[0].type, Uuid))
+            isinstance(list(self.data_infrastructure["base"].metadata.tables["instance"].primary_key.columns)[0].type, sqlalchemy_utility.Uuid))
         self.assertEqual(
             list(self.data_infrastructure["base"].metadata.tables["log"].primary_key.columns)[0].name, "id")
         self.assertTrue(
