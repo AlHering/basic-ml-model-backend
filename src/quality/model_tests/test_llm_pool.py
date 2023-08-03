@@ -45,12 +45,38 @@ class LLMPoolTest(unittest.TestCase):
     Test case class for testing URL configuration.
     """
 
+    def test_llm_preparation(self):
+        """
+        Method for testing thread lifecycle
+        """
+        thread_uuid = self.llm_pool.prepare_llm()
+        self.assertEqual(len(list(self.llm_pool.threads.keys())), 1)
+        self.assertTrue(thread_uuid in self.llm_pool.threads)
+        self.assertTrue(all(key in self.llm_pool.threads[thread_uuid] for key in [
+                        "input", "output", "config", "running"]))
+        thread_config = self.llm_pool.threads[thread_uuid]
+        self.assertTrue(isinstance(
+            thread_config["input"], test_llm_pool.Queue))
+        self.assertTrue(isinstance(
+            thread_config["output"], test_llm_pool.Queue))
+        self.assertTrue(isinstance(
+            thread_config["config"], dict))
+        self.assertTrue(isinstance(
+            thread_config["running"], bool))
+        self.assertFalse(thread_config["running"])
+
     @classmethod
     def setUpClass(cls):
         """
         Class method for setting up test case.
         """
+        test_llm_pool.spawn_language_model_instance = test_spawner
         cls.llm_pool = test_llm_pool.LLMPool()
+        cls.test_config = {
+            "prompt_a": "response_a",
+            "prompt_b": "response_b",
+            "prompt_c": "response_c"
+        }
 
     @classmethod
     def tearDownClass(cls):
@@ -58,6 +84,7 @@ class LLMPoolTest(unittest.TestCase):
         Class method for setting tearing down test case.
         """
         del cls.llm_pool
+        del cls.test_config
 
     @classmethod
     def setup_class(cls):
