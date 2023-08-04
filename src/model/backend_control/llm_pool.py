@@ -49,13 +49,16 @@ class LLMPool(object):
         Method for stopping threads.
         """
         self.main_switch.set()
+        for thread_uuid in self.threads:
+            self.threads[thread_uuid]["thread"].join(0)
+            self.threads[thread_uuid]["running"] = False
 
     def stop(self, target_thread: str) -> None:
         """
         Method for stopping a thread.
         :param target_thread: Thread to stop.
         """
-        self.threads[target_thread]["switch"].set()
+        self.unload_llm(target_thread)
 
     def is_running(self, target_thread: str) -> bool:
         """
