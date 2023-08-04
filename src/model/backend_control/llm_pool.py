@@ -6,25 +6,25 @@
 ****************************************************
 """
 from uuid import uuid4
-import asyncio
-from queue import Queue
+from queue import Queue as TQueue
+from multiprocessing import Process
+from multiprocessing import Queue as MPQueue
 from threading import Thread, Event
 from typing import Optional, Any
 from src.utility.gold.transformer_model_utility import spawn_language_model_instance
 from src.utility.bronze import dictionary_utility
 
 
-def run_llm(main_switch: Event, current_switch: Event, llm_configuraiton: dict, input_queue: Queue, output_queue: Queue) -> None:
+def run_llm(switch: Event, llm_configuraiton: dict, input_queue: TQueue, output_queue: TQueue) -> None:
     """
     Function for running LLM instance.
-    :param main_switch: Pool killswitch event.
-    :param current_switch: Sepecific killswitch event.
+    :param switch: Pool killswitch event.
     :param llm_configuration: Configuration to instantiate LLM.
     :param input_queue: Input queue.
     :param output_queue: Output queue.
     """
     llm = spawn_language_model_instance(llm_configuraiton)
-    while not main_switch.wait(0.5) or current_switch(0.5):
+    while not switch.wait(0.5):
         output_queue.put(llm.generate(input_queue.get()))
 
 
@@ -41,17 +41,14 @@ class ThreadedLLMPool(object):
         """
         # TODO: Add prioritization and potentially interrupt concept
         self.queue_spawns = queue_spawns
-        self.main_switch = Event()
         self.threads = {}
 
     def stop_all(self) -> None:
         """
         Method for stopping threads.
         """
-        self.main_switch.set()
         for thread_uuid in self.threads:
-            self.threads[thread_uuid]["thread"].join(0)
-            self.threads[thread_uuid]["running"] = False
+            self.unload_llm(thread_uuid)
 
     def stop(self, target_thread: str) -> None:
         """
@@ -103,8 +100,8 @@ class ThreadedLLMPool(object):
         uuid = uuid4() if given_uuid is None else given_uuid
         if uuid not in self.threads:
             self.threads[uuid] = {
-                "input": Queue(),
-                "output": Queue(),
+                "input": TQueue(),
+                "output": TQueue(),
                 "config": llm_configuration,
                 "running": False
             }
@@ -118,12 +115,11 @@ class ThreadedLLMPool(object):
         :param target_thread: Thread to start.
         """
         self.threads[target_thread]["switch"] = Event()
-        self.threads[target_thread]["input"] = Queue()
-        self.threads[target_thread]["output"] = Queue()
+        self.threads[target_thread]["input"] = TQueue()
+        self.threads[target_thread]["output"] = TQueue()
         self.threads[target_thread]["thread"] = Thread(
             target=run_llm,
             args=(
-                self.main_switch,
                 self.threads[target_thread]["switch"],
                 self.threads[target_thread]["config"],
                 self.threads[target_thread]["input"],
@@ -167,17 +163,14 @@ class MulitprocessingLLMPool(object):
         """
         # TODO: Add prioritization and potentially interrupt concept
         self.queue_spawns = queue_spawns
-        self.main_switch = Event()
         self.threads = {}
 
     def stop_all(self) -> None:
         """
         Method for stopping threads.
         """
-        self.main_switch.set()
         for thread_uuid in self.threads:
-            self.threads[thread_uuid]["thread"].join(0)
-            self.threads[thread_uuid]["running"] = False
+            self.unload_llm(thread_uuid)
 
     def stop(self, target_thread: str) -> None:
         """
@@ -229,8 +222,8 @@ class MulitprocessingLLMPool(object):
         uuid = uuid4() if given_uuid is None else given_uuid
         if uuid not in self.threads:
             self.threads[uuid] = {
-                "input": Queue(),
-                "output": Queue(),
+                "input": TQueue(),
+                "output": TQueue(),
                 "config": llm_configuration,
                 "running": False
             }
@@ -244,12 +237,11 @@ class MulitprocessingLLMPool(object):
         :param target_thread: Thread to start.
         """
         self.threads[target_thread]["switch"] = Event()
-        self.threads[target_thread]["input"] = Queue()
-        self.threads[target_thread]["output"] = Queue()
+        self.threads[target_thread]["input"] = TQueue()
+        self.threads[target_thread]["output"] = TQueue()
         self.threads[target_thread]["thread"] = Thread(
             target=run_llm,
             args=(
-                self.main_switch,
                 self.threads[target_thread]["switch"],
                 self.threads[target_thread]["config"],
                 self.threads[target_thread]["input"],
