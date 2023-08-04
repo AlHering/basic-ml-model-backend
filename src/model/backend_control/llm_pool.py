@@ -48,7 +48,7 @@ class LLMPool(ABC):
         Method for stopping workers.
         """
         for worker_uuid in self.workers:
-            self.unload_llm(worker_uuid)
+            self._unload_llm(worker_uuid)
             self.workers[worker_uuid]["running"] = False
 
     def stop(self, target_worker: str) -> None:
@@ -56,16 +56,18 @@ class LLMPool(ABC):
         Method for stopping a worker.
         :param target_worker: Worker to stop.
         """
-        self.unload_llm(target_worker)
-        self.workers[target_worker]["running"] = False
+        if self.is_running(target_worker):
+            self._unload_llm(target_worker)
+            self.workers[target_worker]["running"] = False
 
     def start(self, target_worker: str) -> None:
         """
         Method for stopping a worker.
         :param target_worker: Worker to stop.
         """
-        self.unload_llm(target_worker)
-        self.workers[target_worker]["running"] = False
+        if not self.is_running(target_worker):
+            self._load_llm(target_worker)
+            self.workers[target_worker]["running"] = True
 
     def is_running(self, target_worker: str) -> bool:
         """
@@ -95,7 +97,7 @@ class LLMPool(ABC):
         """
         if not dictionary_utility.check_equality(self.workers[target_worker]["config"], llm_configuration):
             if self.workers[target_worker]["running"]:
-                self.unload_llm(target_worker)
+                self._unload_llm(target_worker)
             self.workers[target_worker]["config"] = llm_configuration
         return target_worker
 
@@ -118,17 +120,17 @@ class LLMPool(ABC):
         return uuid
 
     @abstractmethod
-    def load_llm(self, target_worker: str) -> None:
+    def _load_llm(self, target_worker: str) -> None:
         """
-        Method for loading LLM.
+        Internal method for loading LLM.
         :param target_worker: Worker to start.
         """
         pass
 
     @abstractmethod
-    def unload_llm(self, target_worker: str) -> None:
+    def _unload_llm(self, target_worker: str) -> None:
         """
-        Method for unloading LLM.
+        Internal method for unloading LLM.
         :param target_worker: Worker to stop.
         """
         pass
@@ -149,9 +151,9 @@ class ThreadedLLMPool(LLMPool):
     Class for handling a pool of LLM instances in separated threads for leightweight non-blocking I/O.
     """
 
-    def load_llm(self, target_worker: str) -> None:
+    def _load_llm(self, target_worker: str) -> None:
         """
-        Method for loading LLM.
+        Internal method for loading LLM.
         :param target_worker: Worker to start.
         """
         self.workers[target_worker]["switch"] = TEvent()
@@ -170,9 +172,9 @@ class ThreadedLLMPool(LLMPool):
         self.workers[target_worker]["worker"].start()
         self.workers[target_worker]["running"] = True
 
-    def unload_llm(self, target_worker: str) -> None:
+    def _unload_llm(self, target_worker: str) -> None:
         """
-        Method for unloading LLM.
+        Internal method for unloading LLM.
         :param target_worker: Worker to stop.
         """
         self.workers[target_worker]["switch"].set()
@@ -194,9 +196,9 @@ class MulitprocessingLLMPool(LLMPool):
     Class for handling a pool of LLM instances in separate processes for actual concurrency on heavy devices.
     """
 
-    def load_llm(self, target_worker: str) -> None:
+    def _load_llm(self, target_worker: str) -> None:
         """
-        Method for loading LLM.
+        Internal method for loading LLM.
         :param target_worker: Worker to start.
         """
         self.workers[target_worker]["switch"] = MPQueue()
@@ -214,9 +216,9 @@ class MulitprocessingLLMPool(LLMPool):
         self.workers[target_worker]["worker"].start()
         self.workers[target_worker]["running"] = True
 
-    def unload_llm(self, target_worker: str) -> None:
+    def _unload_llm(self, target_worker: str) -> None:
         """
-        Method for unloading LLM.
+        Internal method for unloading LLM.
         :param target_worker: Worker to stop.
         """
         self.workers[target_worker]["switch"].set()
