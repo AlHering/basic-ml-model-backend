@@ -157,7 +157,7 @@ class ThreadedLLMPool(LLMPool):
         self.workers[target_worker]["switch"] = TEvent()
         self.workers[target_worker]["input"] = TQueue()
         self.workers[target_worker]["output"] = TQueue()
-        self.workers[target_worker]["worker"] = (
+        self.workers[target_worker]["worker"] = Thread(
             target=run_llm,
             args=(
                 self.workers[target_worker]["switch"],
