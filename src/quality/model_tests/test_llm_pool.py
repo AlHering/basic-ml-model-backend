@@ -51,14 +51,14 @@ class LLMPoolTest(unittest.TestCase):
         Method for testing llm preparation.
         """
         thread_uuid = self.llm_pool.prepare_llm(self.test_config_a)
-        self.assertTrue(thread_uuid in self.llm_pool.threads)
-        self.assertTrue(all(key in self.llm_pool.threads[thread_uuid] for key in [
+        self.assertTrue(thread_uuid in self.llm_pool.workers)
+        self.assertTrue(all(key in self.llm_pool.workers[thread_uuid] for key in [
                         "input", "output", "config", "running"]))
-        thread_config = self.llm_pool.threads[thread_uuid]
+        thread_config = self.llm_pool.workers[thread_uuid]
         self.assertTrue(isinstance(
-            thread_config["input"], test_llm_pool.Queue))
+            thread_config["input"], test_llm_pool.TQueue))
         self.assertTrue(isinstance(
-            thread_config["output"], test_llm_pool.Queue))
+            thread_config["output"], test_llm_pool.TQueue))
         self.assertTrue(isinstance(
             thread_config["config"], dict))
         self.assertTrue(isinstance(
@@ -70,10 +70,10 @@ class LLMPoolTest(unittest.TestCase):
         """
         Method for testing llm loading.
         """
-        self.assertEqual(len(list(self.llm_pool.threads.keys())), 1)
-        thread_uuid = list(self.llm_pool.threads.keys())[0]
+        self.assertEqual(len(list(self.llm_pool.workers.keys())), 1)
+        thread_uuid = list(self.llm_pool.workers.keys())[0]
         self.llm_pool.load_llm(thread_uuid)
-        thread_config = self.llm_pool.threads[thread_uuid]
+        thread_config = self.llm_pool.workers[thread_uuid]
         self.assertTrue(thread_config["running"])
         self.assertEqual(self.llm_pool.generate(
             thread_uuid, "prompt_a"), "response_a")
@@ -87,13 +87,13 @@ class LLMPoolTest(unittest.TestCase):
         """
         Method for testing llm loading.
         """
-        self.assertEqual(len(list(self.llm_pool.threads.keys())), 1)
-        thread_uuid_a = list(self.llm_pool.threads.keys())[0]
+        self.assertEqual(len(list(self.llm_pool.workers.keys())), 1)
+        thread_uuid_a = list(self.llm_pool.workers.keys())[0]
         thread_uuid_b = self.llm_pool.prepare_llm(self.test_config_b)
-        self.assertEqual(len(list(self.llm_pool.threads.keys())), 2)
+        self.assertEqual(len(list(self.llm_pool.workers.keys())), 2)
 
         self.llm_pool.load_llm(thread_uuid_a)
-        thread_config_a = self.llm_pool.threads[thread_uuid_a]
+        thread_config_a = self.llm_pool.workers[thread_uuid_a]
         self.assertTrue(thread_config_a["running"])
         self.assertTrue(self.llm_pool.is_running(thread_uuid_a))
         self.llm_pool.load_llm(thread_uuid_b)
@@ -114,7 +114,7 @@ class LLMPoolTest(unittest.TestCase):
         self.assertFalse(self.llm_pool.is_running(thread_uuid_b))
 
         thread_uuid_c = self.llm_pool.prepare_llm(self.test_config_c)
-        self.assertEqual(len(list(self.llm_pool.threads.keys())), 3)
+        self.assertEqual(len(list(self.llm_pool.workers.keys())), 3)
         self.assertFalse(self.llm_pool.is_running(thread_uuid_c))
         self.llm_pool.load_llm(thread_uuid_c)
         self.assertTrue(self.llm_pool.is_running(thread_uuid_c))

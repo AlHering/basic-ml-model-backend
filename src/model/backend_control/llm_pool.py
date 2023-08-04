@@ -41,29 +41,29 @@ class ThreadedLLMPool(object):
         """
         # TODO: Add prioritization and potentially interrupt concept
         self.queue_spawns = queue_spawns
-        self.threads = {}
+        self.workers = {}
 
     def stop_all(self) -> None:
         """
-        Method for stopping threads.
+        Method for stopping workers.
         """
-        for thread_uuid in self.threads:
-            self.unload_llm(thread_uuid)
+        for worker_uuid in self.workers:
+            self.unload_llm(worker_uuid)
 
-    def stop(self, target_thread: str) -> None:
+    def stop(self, target_worker: str) -> None:
         """
-        Method for stopping a thread.
-        :param target_thread: Thread to stop.
+        Method for stopping a worker.
+        :param target_worker: Thread to stop.
         """
-        self.unload_llm(target_thread)
+        self.unload_llm(target_worker)
 
-    def is_running(self, target_thread: str) -> bool:
+    def is_running(self, target_worker: str) -> bool:
         """
-        Method for checking whether thread is running.
-        :param target_thread: Thread to check.
-        :return: True, if thread is running, else False.
+        Method for checking whether worker is running.
+        :param target_worker: Thread to check.
+        :return: True, if worker is running, else False.
         """
-        return self.threads[target_thread]["running"]
+        return self.workers[target_worker]["running"]
 
     def validate_resources(self, llm_configuration: dict, queue_spawns: bool) -> bool:
         """
@@ -76,30 +76,30 @@ class ThreadedLLMPool(object):
         # TODO: Implement
         pass
 
-    def reset_llm(self, target_thread: str, llm_configuration: dict) -> str:
+    def reset_llm(self, target_worker: str, llm_configuration: dict) -> str:
         """
         Method for resetting LLM instance to a new config.
-        :param target_thread: Thread of instance.
+        :param target_worker: Thread of instance.
         :param llm_configuration: LLM configuration.
         :return: Thread UUID.
         """
-        if not dictionary_utility.check_equality(self.threads[target_thread]["config"], llm_configuration):
-            if self.threads[target_thread]["running"]:
-                self.unload_llm(target_thread)
-            self.threads[target_thread]["config"] = llm_configuration
-        return target_thread
+        if not dictionary_utility.check_equality(self.workers[target_worker]["config"], llm_configuration):
+            if self.workers[target_worker]["running"]:
+                self.unload_llm(target_worker)
+            self.workers[target_worker]["config"] = llm_configuration
+        return target_worker
 
     def prepare_llm(self, llm_configuration: dict, given_uuid: str = None) -> str:
         """
         Method for preparing LLM instance.
         :param llm_configuration: LLM configuration.
-        :param given_uuid: Given UUID to run thread under.
+        :param given_uuid: Given UUID to run worker under.
             Defaults to None in which case a new UUID is created.
         :return: Thread UUID.
         """
         uuid = uuid4() if given_uuid is None else given_uuid
-        if uuid not in self.threads:
-            self.threads[uuid] = {
+        if uuid not in self.workers:
+            self.workers[uuid] = {
                 "input": TQueue(),
                 "output": TQueue(),
                 "config": llm_configuration,
@@ -109,48 +109,48 @@ class ThreadedLLMPool(object):
             self.reset_llm(uuid, llm_configuration)
         return uuid
 
-    def load_llm(self, target_thread: str) -> None:
+    def load_llm(self, target_worker: str) -> None:
         """
         Method for loading LLM.
-        :param target_thread: Thread to start.
+        :param target_worker: Thread to start.
         """
-        self.threads[target_thread]["switch"] = Event()
-        self.threads[target_thread]["input"] = TQueue()
-        self.threads[target_thread]["output"] = TQueue()
-        self.threads[target_thread]["thread"] = Thread(
+        self.workers[target_worker]["switch"] = Event()
+        self.workers[target_worker]["input"] = TQueue()
+        self.workers[target_worker]["output"] = TQueue()
+        self.workers[target_worker]["thread"] = Thread(
             target=run_llm,
             args=(
-                self.threads[target_thread]["switch"],
-                self.threads[target_thread]["config"],
-                self.threads[target_thread]["input"],
-                self.threads[target_thread]["output"],
+                self.workers[target_worker]["switch"],
+                self.workers[target_worker]["config"],
+                self.workers[target_worker]["input"],
+                self.workers[target_worker]["output"],
             )
         )
-        self.threads[target_thread]["thread"].daemon = True
-        self.threads[target_thread]["thread"].start()
-        self.threads[target_thread]["running"] = True
+        self.workers[target_worker]["thread"].daemon = True
+        self.workers[target_worker]["thread"].start()
+        self.workers[target_worker]["running"] = True
 
-    def unload_llm(self, target_thread: str) -> None:
+    def unload_llm(self, target_worker: str) -> None:
         """
         Method for unloading LLM.
-        :param target_thread: Thread to stop.
+        :param target_worker: Thread to stop.
         """
-        self.threads[target_thread]["switch"].set()
-        self.threads[target_thread]["thread"].join(0)
-        self.threads[target_thread]["running"] = False
+        self.workers[target_worker]["switch"].set()
+        self.workers[target_worker]["thread"].join(0)
+        self.workers[target_worker]["running"] = False
 
-    def generate(self, target_thread: str, prompt: str) -> Optional[Any]:
+    def generate(self, target_worker: str, prompt: str) -> Optional[Any]:
         """
         Request generation response for query from target LLM.
-        :param target_thread: Target thread.
+        :param target_worker: Target worker.
         :param prompt: Prompt to send.
         :return: Response.
         """
-        self.threads[target_thread]["input"].put(prompt)
-        return self.threads[target_thread]["output"].get()
+        self.workers[target_worker]["input"].put(prompt)
+        return self.workers[target_worker]["output"].get()
 
 
-class MulitprocessingLLMPool(object):
+class MulitprocessingLLMPool(ThreadedLLMPool):
     """
     Controller class for handling LLM instances in separate processes for actual concurrency on heavy devices.
     """
@@ -163,29 +163,29 @@ class MulitprocessingLLMPool(object):
         """
         # TODO: Add prioritization and potentially interrupt concept
         self.queue_spawns = queue_spawns
-        self.threads = {}
+        self.workers = {}
 
     def stop_all(self) -> None:
         """
-        Method for stopping threads.
+        Method for stopping workers.
         """
-        for thread_uuid in self.threads:
-            self.unload_llm(thread_uuid)
+        for worker_uuid in self.workers:
+            self.unload_llm(worker_uuid)
 
-    def stop(self, target_thread: str) -> None:
+    def stop(self, target_worker: str) -> None:
         """
-        Method for stopping a thread.
-        :param target_thread: Thread to stop.
+        Method for stopping a worker.
+        :param target_worker: Thread to stop.
         """
-        self.unload_llm(target_thread)
+        self.unload_llm(target_worker)
 
-    def is_running(self, target_thread: str) -> bool:
+    def is_running(self, target_worker: str) -> bool:
         """
-        Method for checking whether thread is running.
-        :param target_thread: Thread to check.
-        :return: True, if thread is running, else False.
+        Method for checking whether worker is running.
+        :param target_worker: Thread to check.
+        :return: True, if worker is running, else False.
         """
-        return self.threads[target_thread]["running"]
+        return self.workers[target_worker]["running"]
 
     def validate_resources(self, llm_configuration: dict, queue_spawns: bool) -> bool:
         """
@@ -198,30 +198,30 @@ class MulitprocessingLLMPool(object):
         # TODO: Implement
         pass
 
-    def reset_llm(self, target_thread: str, llm_configuration: dict) -> str:
+    def reset_llm(self, target_worker: str, llm_configuration: dict) -> str:
         """
         Method for resetting LLM instance to a new config.
-        :param target_thread: Thread of instance.
+        :param target_worker: Thread of instance.
         :param llm_configuration: LLM configuration.
         :return: Thread UUID.
         """
-        if not dictionary_utility.check_equality(self.threads[target_thread]["config"], llm_configuration):
-            if self.threads[target_thread]["running"]:
-                self.unload_llm(target_thread)
-            self.threads[target_thread]["config"] = llm_configuration
-        return target_thread
+        if not dictionary_utility.check_equality(self.workers[target_worker]["config"], llm_configuration):
+            if self.workers[target_worker]["running"]:
+                self.unload_llm(target_worker)
+            self.workers[target_worker]["config"] = llm_configuration
+        return target_worker
 
     def prepare_llm(self, llm_configuration: dict, given_uuid: str = None) -> str:
         """
         Method for preparing LLM instance.
         :param llm_configuration: LLM configuration.
-        :param given_uuid: Given UUID to run thread under.
+        :param given_uuid: Given UUID to run worker under.
             Defaults to None in which case a new UUID is created.
         :return: Thread UUID.
         """
         uuid = uuid4() if given_uuid is None else given_uuid
-        if uuid not in self.threads:
-            self.threads[uuid] = {
+        if uuid not in self.workers:
+            self.workers[uuid] = {
                 "input": TQueue(),
                 "output": TQueue(),
                 "config": llm_configuration,
@@ -231,42 +231,42 @@ class MulitprocessingLLMPool(object):
             self.reset_llm(uuid, llm_configuration)
         return uuid
 
-    def load_llm(self, target_thread: str) -> None:
+    def load_llm(self, target_worker: str) -> None:
         """
         Method for loading LLM.
-        :param target_thread: Thread to start.
+        :param target_worker: Thread to start.
         """
-        self.threads[target_thread]["switch"] = Event()
-        self.threads[target_thread]["input"] = TQueue()
-        self.threads[target_thread]["output"] = TQueue()
-        self.threads[target_thread]["thread"] = Thread(
+        self.workers[target_worker]["switch"] = Event()
+        self.workers[target_worker]["input"] = TQueue()
+        self.workers[target_worker]["output"] = TQueue()
+        self.workers[target_worker]["thread"] = Thread(
             target=run_llm,
             args=(
-                self.threads[target_thread]["switch"],
-                self.threads[target_thread]["config"],
-                self.threads[target_thread]["input"],
-                self.threads[target_thread]["output"],
+                self.workers[target_worker]["switch"],
+                self.workers[target_worker]["config"],
+                self.workers[target_worker]["input"],
+                self.workers[target_worker]["output"],
             )
         )
-        self.threads[target_thread]["thread"].daemon = True
-        self.threads[target_thread]["thread"].start()
-        self.threads[target_thread]["running"] = True
+        self.workers[target_worker]["thread"].daemon = True
+        self.workers[target_worker]["thread"].start()
+        self.workers[target_worker]["running"] = True
 
-    def unload_llm(self, target_thread: str) -> None:
+    def unload_llm(self, target_worker: str) -> None:
         """
         Method for unloading LLM.
-        :param target_thread: Thread to stop.
+        :param target_worker: Thread to stop.
         """
-        self.threads[target_thread]["switch"].set()
-        self.threads[target_thread]["thread"].join(0)
-        self.threads[target_thread]["running"] = False
+        self.workers[target_worker]["switch"].set()
+        self.workers[target_worker]["thread"].join(0)
+        self.workers[target_worker]["running"] = False
 
-    def generate(self, target_thread: str, prompt: str) -> Optional[Any]:
+    def generate(self, target_worker: str, prompt: str) -> Optional[Any]:
         """
         Request generation response for query from target LLM.
-        :param target_thread: Target thread.
+        :param target_worker: Target worker.
         :param prompt: Prompt to send.
         :return: Response.
         """
-        self.threads[target_thread]["input"].put(prompt)
-        return self.threads[target_thread]["output"].get()
+        self.workers[target_worker]["input"].put(prompt)
+        return self.workers[target_worker]["output"].get()
