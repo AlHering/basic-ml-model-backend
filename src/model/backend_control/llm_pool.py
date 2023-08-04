@@ -122,9 +122,11 @@ class LLMPool(object):
                 self.threads[target_thread]["switch"],
                 self.threads[target_thread]["config"],
                 self.threads[target_thread]["input"],
-                self.threads[target_thread]["output"],
+                self.threads[target_thread]["output"]
             )
-        ).start()
+        )
+        self.threads[target_thread]["thread"].daemon = True
+        self.threads[target_thread]["thread"].start()
         self.threads[target_thread]["running"] = True
 
     def unload_llm(self, target_thread: str) -> None:
@@ -133,7 +135,7 @@ class LLMPool(object):
         :param target_thread: Thread to stop.
         """
         self.threads[target_thread]["switch"].set()
-        self.threads[target_thread]["thread"].join()
+        self.threads[target_thread]["thread"].join(0)
         self.threads[target_thread]["running"] = False
 
     def generate(self, target_thread: str, prompt: str) -> Optional[Any]:
