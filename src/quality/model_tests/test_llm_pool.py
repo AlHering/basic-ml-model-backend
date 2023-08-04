@@ -52,13 +52,9 @@ class LLMPoolTest(unittest.TestCase):
         """
         thread_uuid = self.llm_pool.prepare_llm(self.test_config_a)
         self.assertTrue(thread_uuid in self.llm_pool.workers)
-        self.assertTrue(all(key in self.llm_pool.workers[thread_uuid] for key in [
-                        "input", "output", "config", "running"]))
+        self.assertTrue(
+            all(key in self.llm_pool.workers[thread_uuid] for key in ["config", "running"]))
         thread_config = self.llm_pool.workers[thread_uuid]
-        self.assertTrue(isinstance(
-            thread_config["input"], test_llm_pool.TQueue))
-        self.assertTrue(isinstance(
-            thread_config["output"], test_llm_pool.TQueue))
         self.assertTrue(isinstance(
             thread_config["config"], dict))
         self.assertTrue(isinstance(
@@ -66,37 +62,41 @@ class LLMPoolTest(unittest.TestCase):
         self.assertFalse(thread_config["running"])
         self.assertFalse(self.llm_pool.is_running(thread_uuid))
 
-    def test_02_llm_loading(self):
+    def test_02_llm_handling(self):
         """
-        Method for testing llm loading.
+        Method for testing llm handling.
         """
         self.assertEqual(len(list(self.llm_pool.workers.keys())), 1)
         thread_uuid = list(self.llm_pool.workers.keys())[0]
-        self.llm_pool.load_llm(thread_uuid)
+        self.llm_pool.start(thread_uuid)
         thread_config = self.llm_pool.workers[thread_uuid]
+        self.assertTrue(isinstance(
+            thread_config["input"], test_llm_pool.TQueue))
+        self.assertTrue(isinstance(
+            thread_config["output"], test_llm_pool.TQueue))
         self.assertTrue(thread_config["running"])
         self.assertEqual(self.llm_pool.generate(
             thread_uuid, "prompt_a"), "response_a")
         self.assertEqual(self.llm_pool.generate(
             thread_uuid, "prompt_b"), "response_b")
         self.assertTrue(thread_config["running"])
-        self.llm_pool.unload_llm(thread_uuid)
+        self.llm_pool.stop(thread_uuid)
         self.assertFalse(thread_config["running"])
 
-    def test_03_multi_llm_loading(self):
+    def test_03_multi_llm_handling(self):
         """
-        Method for testing llm loading.
+        Method for testing llm handling.
         """
         self.assertEqual(len(list(self.llm_pool.workers.keys())), 1)
         thread_uuid_a = list(self.llm_pool.workers.keys())[0]
         thread_uuid_b = self.llm_pool.prepare_llm(self.test_config_b)
         self.assertEqual(len(list(self.llm_pool.workers.keys())), 2)
 
-        self.llm_pool.load_llm(thread_uuid_a)
+        self.llm_pool.start(thread_uuid_a)
         thread_config_a = self.llm_pool.workers[thread_uuid_a]
         self.assertTrue(thread_config_a["running"])
         self.assertTrue(self.llm_pool.is_running(thread_uuid_a))
-        self.llm_pool.load_llm(thread_uuid_b)
+        self.llm_pool.start(thread_uuid_b)
         self.assertTrue(self.llm_pool.is_running(thread_uuid_b))
 
         self.assertEqual(self.llm_pool.generate(
@@ -110,13 +110,13 @@ class LLMPoolTest(unittest.TestCase):
             thread_uuid_b, "prompt_d"), "response_d")
 
         self.assertTrue(self.llm_pool.is_running(thread_uuid_b))
-        self.llm_pool.unload_llm(thread_uuid_b)
+        self.llm_pool.stop(thread_uuid_b)
         self.assertFalse(self.llm_pool.is_running(thread_uuid_b))
 
         thread_uuid_c = self.llm_pool.prepare_llm(self.test_config_c)
         self.assertEqual(len(list(self.llm_pool.workers.keys())), 3)
         self.assertFalse(self.llm_pool.is_running(thread_uuid_c))
-        self.llm_pool.load_llm(thread_uuid_c)
+        self.llm_pool.start(thread_uuid_c)
         self.assertTrue(self.llm_pool.is_running(thread_uuid_c))
         self.assertFalse(self.llm_pool.is_running(thread_uuid_b))
 
@@ -128,7 +128,7 @@ class LLMPoolTest(unittest.TestCase):
         self.llm_pool.reset_llm(
             thread_uuid_b, {"new_prompt_c": "new_response_c",
                             "new_prompt_d": "new_response_d"})
-        self.llm_pool.load_llm(thread_uuid_b)
+        self.llm_pool.start(thread_uuid_b)
         self.assertTrue(self.llm_pool.is_running(thread_uuid_b))
 
         self.assertEqual(self.llm_pool.generate(
