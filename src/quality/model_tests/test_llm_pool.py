@@ -6,6 +6,7 @@
 ****************************************************
 """
 import unittest
+from time import sleep
 from typing import Optional, Any
 from src.configuration import configuration as cfg
 from src.model.backend_control import llm_pool as test_llm_pool
@@ -49,7 +50,7 @@ class LLMPoolTest(unittest.TestCase):
         """
         Method for testing llm preparation.
         """
-        thread_uuid = self.llm_pool.prepare_llm(self.test_config)
+        thread_uuid = self.llm_pool.prepare_llm(self.test_config_a)
         self.assertTrue(thread_uuid in self.llm_pool.threads)
         self.assertTrue(all(key in self.llm_pool.threads[thread_uuid] for key in [
                         "input", "output", "config", "running"]))
@@ -63,6 +64,7 @@ class LLMPoolTest(unittest.TestCase):
         self.assertTrue(isinstance(
             thread_config["running"], bool))
         self.assertFalse(thread_config["running"])
+        self.assertFalse(self.llm_pool.is_running(thread_uuid))
 
     def test_02_llm_loading(self):
         """
@@ -81,6 +83,72 @@ class LLMPoolTest(unittest.TestCase):
         self.llm_pool.unload_llm(thread_uuid)
         self.assertFalse(thread_config["running"])
 
+    def test_03_multi_llm_loading(self):
+        """
+        Method for testing llm loading.
+        """
+        self.assertEqual(len(list(self.llm_pool.threads.keys())), 1)
+        thread_uuid_a = list(self.llm_pool.threads.keys())[0]
+        thread_uuid_b = self.llm_pool.prepare_llm(self.test_config_b)
+        self.assertEqual(len(list(self.llm_pool.threads.keys())), 2)
+
+        self.llm_pool.load_llm(thread_uuid_a)
+        thread_config_a = self.llm_pool.threads[thread_uuid_a]
+        self.assertTrue(thread_config_a["running"])
+        self.assertTrue(self.llm_pool.is_running(thread_uuid_a))
+        thread_config_b = self.llm_pool.threads[thread_uuid_b]
+        self.llm_pool.load_llm(thread_uuid_b)
+        self.assertTrue(self.llm_pool.is_running(thread_uuid_b))
+
+        self.assertEqual(self.llm_pool.generate(
+            thread_uuid_a, "prompt_a"), "response_a")
+        self.assertEqual(self.llm_pool.generate(
+            thread_uuid_b, "prompt_c"), "response_c")
+
+        self.assertEqual(self.llm_pool.generate(
+            thread_uuid_a, "prompt_b"), "response_b")
+        self.assertEqual(self.llm_pool.generate(
+            thread_uuid_b, "prompt_d"), "response_d")
+
+        self.assertTrue(self.llm_pool.is_running(thread_uuid_b))
+        self.llm_pool.unload_llm(thread_uuid_b)
+        self.assertFalse(self.llm_pool.is_running(thread_uuid_b))
+
+        thread_uuid_c = self.llm_pool.prepare_llm(self.test_config_c)
+        self.assertEqual(len(list(self.llm_pool.threads.keys())), 3)
+        thread_config_c = self.llm_pool.threads[thread_uuid_c]
+        self.assertFalse(self.llm_pool.is_running(thread_uuid_c))
+        self.llm_pool.load_llm(thread_uuid_c)
+        self.assertTrue(self.llm_pool.is_running(thread_uuid_c))
+        self.assertFalse(self.llm_pool.is_running(thread_uuid_b))
+
+        self.assertEqual(self.llm_pool.generate(
+            thread_uuid_c, "prompt_e"), "response_e")
+        self.assertEqual(self.llm_pool.generate(
+            thread_uuid_a, "prompt_b"), "response_b")
+
+        self.llm_pool.reset_llm(
+            thread_uuid_b, {"new_prompt_c": "new_response_c",
+                            "new_prompt_d": "new_response_d"})
+        self.llm_pool.load_llm(thread_uuid_b)
+        thread_config_b = self.llm_pool.threads[thread_uuid_b]
+        self.assertTrue(self.llm_pool.is_running(thread_uuid_b))
+
+        self.assertEqual(self.llm_pool.generate(
+            thread_uuid_b, "new_prompt_d"), "new_response_d")
+        self.assertEqual(self.llm_pool.generate(
+            thread_uuid_c, "prompt_f"), "response_f")
+        self.assertEqual(self.llm_pool.generate(
+            thread_uuid_a, "prompt_a"), "response_a")
+        self.assertEqual(self.llm_pool.generate(
+            thread_uuid_b, "new_prompt_c"), "new_response_c")
+
+        self.llm_pool.stop_all()
+        self.assertFalse(thread_config_a["running"])
+        self.assertFalse(self.llm_pool.is_running(thread_uuid_a))
+        self.assertFalse(self.llm_pool.is_running(thread_uuid_b))
+        self.assertFalse(self.llm_pool.is_running(thread_uuid_c))
+
     @classmethod
     def setUpClass(cls):
         """
@@ -88,9 +156,17 @@ class LLMPoolTest(unittest.TestCase):
         """
         test_llm_pool.spawn_language_model_instance = test_spawner
         cls.llm_pool = test_llm_pool.LLMPool()
-        cls.test_config = {
+        cls.test_config_a = {
             "prompt_a": "response_a",
             "prompt_b": "response_b"
+        }
+        cls.test_config_b = {
+            "prompt_c": "response_c",
+            "prompt_d": "response_d"
+        }
+        cls.test_config_c = {
+            "prompt_e": "response_e",
+            "prompt_f": "response_f"
         }
 
     @classmethod
@@ -99,7 +175,9 @@ class LLMPoolTest(unittest.TestCase):
         Class method for setting tearing down test case.
         """
         del cls.llm_pool
-        del cls.test_config
+        del cls.test_config_a
+        del cls.test_config_b
+        del cls.test_config_c
 
     @classmethod
     def setup_class(cls):
