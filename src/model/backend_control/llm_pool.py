@@ -118,6 +118,8 @@ class LLMPool(object):
         :param target_thread: Thread to start.
         """
         self.threads[target_thread]["switch"] = Event()
+        self.threads[target_thread]["input"] = Queue()
+        self.threads[target_thread]["output"] = Queue()
         self.threads[target_thread]["thread"] = Thread(
             target=run_llm,
             args=(
