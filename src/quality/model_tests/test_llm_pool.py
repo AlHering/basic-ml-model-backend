@@ -45,12 +45,11 @@ class LLMPoolTest(unittest.TestCase):
     Test case class for testing URL configuration.
     """
 
-    def test_llm_preparation(self):
+    def test_01_llm_preparation(self):
         """
-        Method for testing thread lifecycle
+        Method for testing llm preparation.
         """
         thread_uuid = self.llm_pool.prepare_llm(self.test_config)
-        self.assertEqual(len(list(self.llm_pool.threads.keys())), 1)
         self.assertTrue(thread_uuid in self.llm_pool.threads)
         self.assertTrue(all(key in self.llm_pool.threads[thread_uuid] for key in [
                         "input", "output", "config", "running"]))
@@ -65,6 +64,23 @@ class LLMPoolTest(unittest.TestCase):
             thread_config["running"], bool))
         self.assertFalse(thread_config["running"])
 
+    def test_02_llm_loading(self):
+        """
+        Method for testing llm loading.
+        """
+        self.assertEqual(len(list(self.llm_pool.threads.keys())), 1)
+        thread_uuid = list(self.llm_pool.threads.keys())[0]
+        self.llm_pool.load_llm(thread_uuid)
+        thread_config = self.llm_pool.threads[thread_uuid]
+        self.assertTrue(thread_config["running"])
+        self.assertEqual(self.llm_pool.generate(
+            thread_uuid, "prompt_a"), "response_a")
+        self.assertEqual(self.llm_pool.generate(
+            thread_uuid, "prompt_b"), "response_b")
+        self.assertTrue(thread_config["running"])
+        self.llm_pool.unload_llm(thread_uuid)
+        self.assertFalse(thread_config["running"])
+
     @classmethod
     def setUpClass(cls):
         """
@@ -74,8 +90,7 @@ class LLMPoolTest(unittest.TestCase):
         cls.llm_pool = test_llm_pool.LLMPool()
         cls.test_config = {
             "prompt_a": "response_a",
-            "prompt_b": "response_b",
-            "prompt_c": "response_c"
+            "prompt_b": "response_b"
         }
 
     @classmethod

@@ -22,7 +22,7 @@ class DataclassesTest(unittest.TestCase):
     Test case class for testing URL configuration.
     """
 
-    def test_infrastructure(self) -> None:
+    def test_01_infrastructure(self) -> None:
         """
         Method for testing basic infrastructure.
         """
@@ -36,7 +36,7 @@ class DataclassesTest(unittest.TestCase):
         self.assertEqual(len(
             [c for c in self.data_infrastructure["base"].metadata.tables["log"].columns]), 5)
 
-    def test_key_constraints(self) -> None:
+    def test_02_key_constraints(self) -> None:
         """
         Method for testing key constraints.
         """
@@ -58,7 +58,7 @@ class DataclassesTest(unittest.TestCase):
         self.assertTrue(
             isinstance(list(self.data_infrastructure["base"].metadata.tables["log"].primary_key.columns)[0].type, sqlalchemy_utility.Integer))
 
-    def test_model_key_representation(self) -> None:
+    def test_03_model_key_representation(self) -> None:
         """
         Method for testing model representation.
         """
@@ -68,7 +68,7 @@ class DataclassesTest(unittest.TestCase):
         self.assertEqual(primary_keys["instance"], "uuid")
         self.assertEqual(primary_keys["log"], "id")
 
-    def test_model_object_interaction(self) -> None:
+    def test_04_model_object_interaction(self) -> None:
         """
         Method for testing model representation.
         """
