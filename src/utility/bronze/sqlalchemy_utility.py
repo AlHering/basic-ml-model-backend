@@ -6,7 +6,8 @@
 ****************************************************
 """
 import copy
-from sqlalchemy import Column, String, Boolean, Integer, JSON, Text, DateTime, CHAR, ForeignKey, Table, Float, BLOB, TEXT
+from enum import Enum
+from sqlalchemy import Column, String, Boolean, Integer, JSON, Text, DateTime, CHAR, ForeignKey, Table, Float, BLOB, Uuid
 from sqlalchemy.orm import Session, relationship
 from sqlalchemy import and_, or_, not_
 from sqlalchemy import create_engine
@@ -20,10 +21,46 @@ from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.exc import ProgrammingError, OperationalError
 from typing import List, Union, Any, Optional
 
+# Dictionary, mapping filter types of filters to SQLAlchemy-compatible filters
+SQLALCHEMY_FILTER_CONVERTER = {
+    "equals": lambda x, y: x == y,
+    "not_equals": lambda x, y: not_(x == y),
+    "contains": lambda x, y: x.contains(y),
+    "not_contains": lambda x, y: not_(x.contains(y)),
+    "is_contained": lambda x, y: x.in_(y),
+    "not_is_contained": lambda x, y: not_(x.in_(y)),
+    "==": lambda x, y: x == y,
+    "!=": lambda x, y: or_(x != y, and_(x is None, y is not None)),
+    "has": lambda x, y: x.contains(y),
+    "not_has": lambda x, y: not_(x.contains(y)),
+    "in": lambda x, y: x.in_(y),
+    "not_in": lambda x, y: not_(x.in_(y)),
+    "and": lambda *x: and_(*x),
+    "or": lambda *x: or_(*x),
+    "not": lambda x: not_(x),
+    "&&": lambda *x: and_(*x),
+    "||": lambda *x: or_(*x),
+    "!": lambda x: not_(x)
+}
 
 # Supported dialects
 SUPPORTED_DIALECTS = ["sqlite", "mysql",
-                      "mssql", "postgresql", "mariadb", "oracle"]
+                      "mssql", "postgresql", "mariadb", "oracle", "duckdb"]
+
+
+class Dialect(Enum):
+    """
+    Database dialect enum class.
+    """
+    SQLITE = 0
+    MYSQL = 1
+    MARIADB = 2
+    DUCKDB = 3
+    ORACLE = 4
+    MSSQL = 5
+    POSTGRESQL = 6
+
+
 # Conversion dictionary for SQLAlchemy typing
 SQLALCHEMY_TYPING_DICTIONARY = {
     "int": Integer,
@@ -37,6 +74,8 @@ SQLALCHEMY_TYPING_DICTIONARY = {
     "longtext": Text,
     "float_": Float,
     "float": Float,
+    "blob": BLOB,
+    "uuid": Uuid
 }
 
 

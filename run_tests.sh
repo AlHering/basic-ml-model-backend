@@ -43,4 +43,4 @@ printf "\n%s\n" "${delimiter}"
 source "${CONDA_DIR}/etc/profile.d/conda.sh" \
     && conda activate $VENV_DIR \
     && cd $SCRIPT_DIR \
-    && python run_backend.py
+    && python -m unittest

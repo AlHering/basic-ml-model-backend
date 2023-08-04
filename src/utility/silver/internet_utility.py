@@ -18,7 +18,7 @@ from time import sleep
 from typing import Any, Optional
 from fake_useragent import UserAgent
 import requests
-from http_request_randomizer.requests.proxy.requestProxy import RequestProxy
+from fp.fp import FreeProxy
 LOGGER = logging.Logger("[InternetUtility]")
 
 
@@ -69,25 +69,23 @@ def timeout(max_timeout: float) -> Any:
     return timeout_decorator
 
 
-def get_proxy(**kwargs: Optional[Any]) -> str:
+def get_proxy(**kwargs: Optional[Any]) -> Optional[str]:
     """
     Function for getting a proxy.
     :param kwargs: Arbitrary keyword arguments.
         'source': Source to get proxy from: 'package' or the path to a file, containing proxies, are supported.
-        'location': Location for proxy to get, only working with supported source.
+        'locations': Location for proxy to get, only working with supported source.
     :return: Proxy IP as string.
     """
     source = kwargs.get("source", "package")
-    location = kwargs.get("location", "")
+    locations = kwargs.get("locations")
 
     if source == "package":
-        proxies = RequestProxy().get_proxy_list()
-        if location:
-            for proxy in proxies:
-                if proxy.country.lower() == location.lower():
-                    return proxy.get_address()
-        else:
-            return proxies[random.randint(0, len(proxies)-1)].get_address()
+        proxy = FreeProxy(anonym=True, country_id=locations).get()
+        return {
+            "http": proxy if proxy.startswith("http:") else proxy.replace("https://", "http://"),
+            "https": proxy if proxy.startswith("https") else proxy.replace("http://", "https://")
+        }
     elif os.path.exists(source):
         proxies = open(source, "r").readlines()
         return proxies[random.randint(0, len(proxies)-1)]
