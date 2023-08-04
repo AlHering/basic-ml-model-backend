@@ -5,6 +5,7 @@
 *            (c) 2023 Alexander Hering             *
 ****************************************************
 """
+from abc import ABC, abstractmethod
 from uuid import uuid4
 from queue import Queue as TQueue
 from multiprocessing import Process
@@ -28,9 +29,9 @@ def run_llm(switch: Event, llm_configuraiton: dict, input_queue: TQueue, output_
         output_queue.put(llm.generate(input_queue.get()))
 
 
-class ThreadedLLMPool(object):
+class LLMPool(ABC):
     """
-    Controller class for handling LLM instances in separated threads for leightweight non-blocking I/O.
+    Class for handling a pool of LLM instances.
     """
 
     def __init__(self, queue_spawns: bool = False) -> None:
@@ -57,13 +58,14 @@ class ThreadedLLMPool(object):
         """
         self.unload_llm(target_worker)
 
+    @abstractmethod
     def is_running(self, target_worker: str) -> bool:
         """
         Method for checking whether worker is running.
         :param target_worker: Thread to check.
         :return: True, if worker is running, else False.
         """
-        return self.workers[target_worker]["running"]
+        pass
 
     def validate_resources(self, llm_configuration: dict, queue_spawns: bool) -> bool:
         """
@@ -75,6 +77,79 @@ class ThreadedLLMPool(object):
         """
         # TODO: Implement
         pass
+
+    def reset_llm(self, target_worker: str, llm_configuration: dict) -> str:
+        """
+        Method for resetting LLM instance to a new config.
+        :param target_worker: Thread of instance.
+        :param llm_configuration: LLM configuration.
+        :return: Thread UUID.
+        """
+        if not dictionary_utility.check_equality(self.workers[target_worker]["config"], llm_configuration):
+            if self.workers[target_worker]["running"]:
+                self.unload_llm(target_worker)
+            self.workers[target_worker]["config"] = llm_configuration
+        return target_worker
+
+    @abstractmethod
+    def prepare_llm(self, llm_configuration: dict, given_uuid: str = None) -> str:
+        """
+        Method for preparing LLM instance.
+        :param llm_configuration: LLM configuration.
+        :param given_uuid: Given UUID to run worker under.
+            Defaults to None in which case a new UUID is created.
+        :return: Thread UUID.
+        """
+        pass
+
+    def load_llm(self, target_worker: str) -> None:
+        """
+        Method for loading LLM.
+        :param target_worker: Thread to start.
+        """
+        pass
+
+    @abstractmethod
+    def unload_llm(self, target_worker: str) -> None:
+        """
+        Method for unloading LLM.
+        :param target_worker: Thread to stop.
+        """
+        pass
+
+    @abstractmethod
+    def generate(self, target_worker: str, prompt: str) -> Optional[Any]:
+        """
+        Request generation response for query from target LLM.
+        :param target_worker: Target worker.
+        :param prompt: Prompt to send.
+        :return: Response.
+        """
+        pass
+
+
+class ThreadedLLMPool(LLMPool):
+    """
+    Class for handling a pool of LLM instances in separated threads for leightweight non-blocking I/O.
+    """
+
+    def __init__(self, queue_spawns: bool = False) -> None:
+        """
+        Initiation method.
+        :param queue_spawns: Queue up instanciation until resources are available.
+            Defaults to False.
+        """
+        # TODO: Add prioritization and potentially interrupt concept
+        self.queue_spawns = queue_spawns
+        self.workers = {}
+
+    def is_running(self, target_worker: str) -> bool:
+        """
+        Method for checking whether worker is running.
+        :param target_worker: Thread to check.
+        :return: True, if worker is running, else False.
+        """
+        return self.workers[target_worker]["running"]
 
     def reset_llm(self, target_worker: str, llm_configuration: dict) -> str:
         """
@@ -150,9 +225,9 @@ class ThreadedLLMPool(object):
         return self.workers[target_worker]["output"].get()
 
 
-class MulitprocessingLLMPool(ThreadedLLMPool):
+class MulitprocessingLLMPool(LLMPool):
     """
-    Controller class for handling LLM instances in separate processes for actual concurrency on heavy devices.
+    Class for handling a pool of LLM instances in separate processes for actual concurrency on heavy devices.
     """
 
     def __init__(self, queue_spawns: bool = False) -> None:
@@ -165,20 +240,6 @@ class MulitprocessingLLMPool(ThreadedLLMPool):
         self.queue_spawns = queue_spawns
         self.workers = {}
 
-    def stop_all(self) -> None:
-        """
-        Method for stopping workers.
-        """
-        for worker_uuid in self.workers:
-            self.unload_llm(worker_uuid)
-
-    def stop(self, target_worker: str) -> None:
-        """
-        Method for stopping a worker.
-        :param target_worker: Thread to stop.
-        """
-        self.unload_llm(target_worker)
-
     def is_running(self, target_worker: str) -> bool:
         """
         Method for checking whether worker is running.
@@ -186,17 +247,6 @@ class MulitprocessingLLMPool(ThreadedLLMPool):
         :return: True, if worker is running, else False.
         """
         return self.workers[target_worker]["running"]
-
-    def validate_resources(self, llm_configuration: dict, queue_spawns: bool) -> bool:
-        """
-        Method for validating resources before LLM instantiation.
-        :param llm_configuration: LLM configuration.
-        :param queue_spawns: Queue up instanciation until resources are available.
-            Defaults to False.
-        :return: True, if resources are available, else False.
-        """
-        # TODO: Implement
-        pass
 
     def reset_llm(self, target_worker: str, llm_configuration: dict) -> str:
         """
