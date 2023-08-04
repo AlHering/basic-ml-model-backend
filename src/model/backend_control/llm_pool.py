@@ -54,7 +54,7 @@ class LLMPool(ABC):
     def stop(self, target_worker: str) -> None:
         """
         Method for stopping a worker.
-        :param target_worker: Thread to stop.
+        :param target_worker: Worker to stop.
         """
         self.unload_llm(target_worker)
         self.workers[target_worker]["running"] = False
@@ -62,7 +62,7 @@ class LLMPool(ABC):
     def start(self, target_worker: str) -> None:
         """
         Method for stopping a worker.
-        :param target_worker: Thread to stop.
+        :param target_worker: Worker to stop.
         """
         self.unload_llm(target_worker)
         self.workers[target_worker]["running"] = False
@@ -70,7 +70,7 @@ class LLMPool(ABC):
     def is_running(self, target_worker: str) -> bool:
         """
         Method for checking whether worker is running.
-        :param target_worker: Thread to check.
+        :param target_worker: Worker to check.
         :return: True, if worker is running, else False.
         """
         return self.workers[target_worker]["running"]
@@ -89,7 +89,7 @@ class LLMPool(ABC):
     def reset_llm(self, target_worker: str, llm_configuration: dict) -> str:
         """
         Method for resetting LLM instance to a new config.
-        :param target_worker: Thread of instance.
+        :param target_worker: Worker of instance.
         :param llm_configuration: LLM configuration.
         :return: Worker UUID.
         """
@@ -121,7 +121,7 @@ class LLMPool(ABC):
     def load_llm(self, target_worker: str) -> None:
         """
         Method for loading LLM.
-        :param target_worker: Thread to start.
+        :param target_worker: Worker to start.
         """
         pass
 
@@ -129,7 +129,7 @@ class LLMPool(ABC):
     def unload_llm(self, target_worker: str) -> None:
         """
         Method for unloading LLM.
-        :param target_worker: Thread to stop.
+        :param target_worker: Worker to stop.
         """
         pass
 
@@ -152,7 +152,7 @@ class ThreadedLLMPool(LLMPool):
     def load_llm(self, target_worker: str) -> None:
         """
         Method for loading LLM.
-        :param target_worker: Thread to start.
+        :param target_worker: Worker to start.
         """
         self.workers[target_worker]["switch"] = TEvent()
         self.workers[target_worker]["input"] = TQueue()
@@ -173,7 +173,7 @@ class ThreadedLLMPool(LLMPool):
     def unload_llm(self, target_worker: str) -> None:
         """
         Method for unloading LLM.
-        :param target_worker: Thread to stop.
+        :param target_worker: Worker to stop.
         """
         self.workers[target_worker]["switch"].set()
         self.workers[target_worker]["worker"].join(0)
@@ -197,7 +197,7 @@ class MulitprocessingLLMPool(LLMPool):
     def load_llm(self, target_worker: str) -> None:
         """
         Method for loading LLM.
-        :param target_worker: Thread to start.
+        :param target_worker: Worker to start.
         """
         self.workers[target_worker]["switch"] = MPQueue()
         self.workers[target_worker]["input"] = MPQueue()
@@ -217,7 +217,7 @@ class MulitprocessingLLMPool(LLMPool):
     def unload_llm(self, target_worker: str) -> None:
         """
         Method for unloading LLM.
-        :param target_worker: Thread to stop.
+        :param target_worker: Worker to stop.
         """
         self.workers[target_worker]["switch"].set()
         self.workers[target_worker]["worker"].join(0)
