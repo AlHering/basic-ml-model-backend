@@ -10,7 +10,7 @@ from time import sleep
 from datetime import datetime as dt
 from typing import Optional, Any, List
 from src.configuration import configuration as cfg
-from src.model.backend_control.llm_pool import LLMPool
+from src.model.backend_control.llm_pool import ThreadedLLMPool
 from src.model.backend_control.dataclasses import create_or_load_database
 
 
@@ -39,7 +39,7 @@ class BackendController(object):
             object_class: self.model[object_class].__mapper__.primary_key[0].name for object_class in self.model}
         # TODO: Include priority and interrupt system when implemented in LLMPool class.
         self._cache = {}
-        self.llm_pool = LLMPool()
+        self.llm_pool = ThreadedLLMPool()
 
     def shutdown(self) -> None:
         """

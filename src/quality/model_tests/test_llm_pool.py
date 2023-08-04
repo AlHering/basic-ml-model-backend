@@ -145,7 +145,6 @@ class LLMPoolTest(unittest.TestCase):
         self.assertFalse(self.llm_pool.is_running(thread_uuid_a))
         self.assertFalse(self.llm_pool.is_running(thread_uuid_b))
         self.assertFalse(self.llm_pool.is_running(thread_uuid_c))
-        sleep(2)
 
     @classmethod
     def setUpClass(cls):
@@ -153,7 +152,7 @@ class LLMPoolTest(unittest.TestCase):
         Class method for setting up test case.
         """
         test_llm_pool.spawn_language_model_instance = test_spawner
-        cls.llm_pool = test_llm_pool.LLMPool()
+        cls.llm_pool = test_llm_pool.ThreadedLLMPool()
         cls.test_config_a = {
             "prompt_a": "response_a",
             "prompt_b": "response_b"
