@@ -150,16 +150,6 @@ class ThreadedLLMPool(LLMPool):
     Class for handling a pool of LLM instances in separated threads for leightweight non-blocking I/O.
     """
 
-    def __init__(self, queue_spawns: bool = False) -> None:
-        """
-        Initiation method.
-        :param queue_spawns: Queue up instanciation until resources are available.
-            Defaults to False.
-        """
-        # TODO: Add prioritization and potentially interrupt concept
-        self.queue_spawns = queue_spawns
-        self.workers = {}
-
     def load_llm(self, target_worker: str) -> None:
         """
         Method for loading LLM.
@@ -205,16 +195,6 @@ class MulitprocessingLLMPool(LLMPool):
     Class for handling a pool of LLM instances in separate processes for actual concurrency on heavy devices.
     """
 
-    def __init__(self, queue_spawns: bool = False) -> None:
-        """
-        Initiation method.
-        :param queue_spawns: Queue up instanciation until resources are available.
-            Defaults to False.
-        """
-        # TODO: Add prioritization and potentially interrupt concept
-        self.queue_spawns = queue_spawns
-        self.workers = {}
-
     def load_llm(self, target_worker: str) -> None:
         """
         Method for loading LLM.
@@ -223,7 +203,7 @@ class MulitprocessingLLMPool(LLMPool):
         self.workers[target_worker]["switch"] = Event()
         self.workers[target_worker]["input"] = MPQueue()
         self.workers[target_worker]["output"] = MPQueue()
-        self.workers[target_worker]["process"] = Thread(
+        self.workers[target_worker]["worker"] = Thread(
             target=run_llm,
             args=(
                 self.workers[target_worker]["switch"],
