@@ -127,7 +127,7 @@ class LLMPool(object):
                 self.threads[target_thread]["switch"],
                 self.threads[target_thread]["config"],
                 self.threads[target_thread]["input"],
-                self.threads[target_thread]["output"]
+                self.threads[target_thread]["output"],
             )
         )
         self.threads[target_thread]["thread"].daemon = True
