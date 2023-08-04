@@ -83,7 +83,7 @@ class LLMPool(ABC):
         Method for resetting LLM instance to a new config.
         :param target_worker: Thread of instance.
         :param llm_configuration: LLM configuration.
-        :return: Thread UUID.
+        :return: Worker UUID.
         """
         if not dictionary_utility.check_equality(self.workers[target_worker]["config"], llm_configuration):
             if self.workers[target_worker]["running"]:
@@ -98,7 +98,7 @@ class LLMPool(ABC):
         :param llm_configuration: LLM configuration.
         :param given_uuid: Given UUID to run worker under.
             Defaults to None in which case a new UUID is created.
-        :return: Thread UUID.
+        :return: Worker UUID.
         """
         pass
 
@@ -156,7 +156,7 @@ class ThreadedLLMPool(LLMPool):
         Method for resetting LLM instance to a new config.
         :param target_worker: Thread of instance.
         :param llm_configuration: LLM configuration.
-        :return: Thread UUID.
+        :return: Worker UUID.
         """
         if not dictionary_utility.check_equality(self.workers[target_worker]["config"], llm_configuration):
             if self.workers[target_worker]["running"]:
@@ -170,7 +170,7 @@ class ThreadedLLMPool(LLMPool):
         :param llm_configuration: LLM configuration.
         :param given_uuid: Given UUID to run worker under.
             Defaults to None in which case a new UUID is created.
-        :return: Thread UUID.
+        :return: Worker UUID.
         """
         uuid = uuid4() if given_uuid is None else given_uuid
         if uuid not in self.workers:
@@ -253,7 +253,7 @@ class MulitprocessingLLMPool(LLMPool):
         Method for resetting LLM instance to a new config.
         :param target_worker: Thread of instance.
         :param llm_configuration: LLM configuration.
-        :return: Thread UUID.
+        :return: Worker UUID.
         """
         if not dictionary_utility.check_equality(self.workers[target_worker]["config"], llm_configuration):
             if self.workers[target_worker]["running"]:
@@ -267,7 +267,7 @@ class MulitprocessingLLMPool(LLMPool):
         :param llm_configuration: LLM configuration.
         :param given_uuid: Given UUID to run worker under.
             Defaults to None in which case a new UUID is created.
-        :return: Thread UUID.
+        :return: Worker UUID.
         """
         uuid = uuid4() if given_uuid is None else given_uuid
         if uuid not in self.workers:
