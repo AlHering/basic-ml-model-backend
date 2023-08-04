@@ -96,7 +96,6 @@ class LLMPoolTest(unittest.TestCase):
         thread_config_a = self.llm_pool.threads[thread_uuid_a]
         self.assertTrue(thread_config_a["running"])
         self.assertTrue(self.llm_pool.is_running(thread_uuid_a))
-        thread_config_b = self.llm_pool.threads[thread_uuid_b]
         self.llm_pool.load_llm(thread_uuid_b)
         self.assertTrue(self.llm_pool.is_running(thread_uuid_b))
 
@@ -116,7 +115,6 @@ class LLMPoolTest(unittest.TestCase):
 
         thread_uuid_c = self.llm_pool.prepare_llm(self.test_config_c)
         self.assertEqual(len(list(self.llm_pool.threads.keys())), 3)
-        thread_config_c = self.llm_pool.threads[thread_uuid_c]
         self.assertFalse(self.llm_pool.is_running(thread_uuid_c))
         self.llm_pool.load_llm(thread_uuid_c)
         self.assertTrue(self.llm_pool.is_running(thread_uuid_c))
@@ -131,7 +129,6 @@ class LLMPoolTest(unittest.TestCase):
             thread_uuid_b, {"new_prompt_c": "new_response_c",
                             "new_prompt_d": "new_response_d"})
         self.llm_pool.load_llm(thread_uuid_b)
-        thread_config_b = self.llm_pool.threads[thread_uuid_b]
         self.assertTrue(self.llm_pool.is_running(thread_uuid_b))
 
         self.assertEqual(self.llm_pool.generate(
@@ -148,6 +145,7 @@ class LLMPoolTest(unittest.TestCase):
         self.assertFalse(self.llm_pool.is_running(thread_uuid_a))
         self.assertFalse(self.llm_pool.is_running(thread_uuid_b))
         self.assertFalse(self.llm_pool.is_running(thread_uuid_c))
+        sleep(2)
 
     @classmethod
     def setUpClass(cls):
