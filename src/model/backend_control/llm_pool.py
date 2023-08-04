@@ -5,18 +5,17 @@
 *            (c) 2023 Alexander Hering             *
 ****************************************************
 """
+from typing import Optional, Any, Union
 from abc import ABC, abstractmethod
 from uuid import uuid4
 from queue import Queue as TQueue
-from multiprocessing import Process
-from multiprocessing import Queue as MPQueue
-from threading import Thread, Event
-from typing import Optional, Any
+from multiprocessing import Process, Queue as MPQueue, Event as MPEvent
+from threading import Thread, Event as TEvent
 from src.utility.gold.transformer_model_utility import spawn_language_model_instance
 from src.utility.bronze import dictionary_utility
 
 
-def run_llm(switch: Event, llm_configuraiton: dict, input_queue: TQueue, output_queue: TQueue) -> None:
+def run_llm(switch: Union[TEvent, MPEvent], llm_configuraiton: dict, input_queue: Union[TQueue, MPQueue], output_queue: Union[TQueue, MPQueue]) -> None:
     """
     Function for running LLM instance.
     :param switch: Pool killswitch event.
@@ -155,10 +154,10 @@ class ThreadedLLMPool(LLMPool):
         Method for loading LLM.
         :param target_worker: Thread to start.
         """
-        self.workers[target_worker]["switch"] = Event()
+        self.workers[target_worker]["switch"] = TEvent()
         self.workers[target_worker]["input"] = TQueue()
         self.workers[target_worker]["output"] = TQueue()
-        self.workers[target_worker]["worker"] = Process(
+        self.workers[target_worker]["worker"] = (
             target=run_llm,
             args=(
                 self.workers[target_worker]["switch"],
@@ -167,6 +166,7 @@ class ThreadedLLMPool(LLMPool):
                 self.workers[target_worker]["output"],
             )
         )
+        self.workers[target_worker]["worker"].daemon = True
         self.workers[target_worker]["worker"].start()
         self.workers[target_worker]["running"] = True
 
@@ -199,10 +199,10 @@ class MulitprocessingLLMPool(LLMPool):
         Method for loading LLM.
         :param target_worker: Thread to start.
         """
-        self.workers[target_worker]["switch"] = Event()
+        self.workers[target_worker]["switch"] = MPQueue()
         self.workers[target_worker]["input"] = MPQueue()
         self.workers[target_worker]["output"] = MPQueue()
-        self.workers[target_worker]["worker"] = Thread(
+        self.workers[target_worker]["worker"] = Process(
             target=run_llm,
             args=(
                 self.workers[target_worker]["switch"],
@@ -211,7 +211,6 @@ class MulitprocessingLLMPool(LLMPool):
                 self.workers[target_worker]["output"],
             )
         )
-        self.workers[target_worker]["worker"].daemon = True
         self.workers[target_worker]["worker"].start()
         self.workers[target_worker]["running"] = True
 
