@@ -197,7 +197,7 @@ class ThreadedLLMPool(LLMPool):
         :param target_worker: Worker to stop.
         """
         self.workers[target_worker]["switch"].set()
-        self.workers[target_worker]["worker"].join(0)
+        self.workers[target_worker]["worker"].join(1)
 
     def generate(self, target_worker: str, prompt: str) -> Optional[Any]:
         """
