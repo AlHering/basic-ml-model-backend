@@ -7,6 +7,7 @@
 """
 import unittest
 from time import sleep
+import multiprocessing.queues
 from typing import Optional, Any
 from src.configuration import configuration as cfg
 from src.model.backend_control import llm_pool as test_llm_pool
@@ -70,6 +71,8 @@ class ThreadedLLMPoolTest(unittest.TestCase):
         worker_uuid = list(self.llm_pool.workers.keys())[0]
         self.llm_pool.start(worker_uuid)
         worker_config = self.llm_pool.workers[worker_uuid]
+        self.assertTrue(isinstance(
+            worker_config["switch"], test_llm_pool.TEvent))
         self.assertTrue(isinstance(
             worker_config["input"], test_llm_pool.TQueue))
         self.assertTrue(isinstance(
@@ -221,9 +224,11 @@ class MultiprocessingLLMPoolTest(unittest.TestCase):
         self.llm_pool.start(worker_uuid)
         worker_config = self.llm_pool.workers[worker_uuid]
         self.assertTrue(isinstance(
-            worker_config["input"], test_llm_pool.TQueue))
+            worker_config["switch"], test_llm_pool.MPEvent))
         self.assertTrue(isinstance(
-            worker_config["output"], test_llm_pool.TQueue))
+            worker_config["input"], multiprocessing.queues.Queue))
+        self.assertTrue(isinstance(
+            worker_config["output"], multiprocessing.queues.Queue))
         self.assertTrue(worker_config["running"])
         self.assertEqual(self.llm_pool.generate(
             worker_uuid, "prompt_a"), "response_a")
