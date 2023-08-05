@@ -5,19 +5,21 @@
 *            (c) 2023 Alexander Hering             *
 ****************************************************
 """
-from typing import Optional, Any, Union
+import sys
+from typing import Optional, Any
 from abc import ABC, abstractmethod
 from uuid import uuid4
 from queue import Queue as TQueue
-from multiprocessing import Process, Queue as MPQueue, Event as MPEvent
+from multiprocessing import Process, Queue as MPQueue, Event as mp_get_event
+from multiprocessing.synchronize import Event as MPEvent
 from threading import Thread, Event as TEvent
 from src.utility.gold.transformer_model_utility import spawn_language_model_instance
 from src.utility.bronze import dictionary_utility
 
 
-def run_llm(switch: Union[TEvent, MPEvent], llm_configuraiton: dict, input_queue: Union[TQueue, MPQueue], output_queue: Union[TQueue, MPQueue]) -> None:
+def run_treaded_llm(switch: TEvent, llm_configuraiton: dict, input_queue: TQueue, output_queue: TQueue) -> None:
     """
-    Function for running LLM instance.
+    Function for running LLM instance in threading mode.
     :param switch: Pool killswitch event.
     :param llm_configuration: Configuration to instantiate LLM.
     :param input_queue: Input queue.
@@ -26,6 +28,23 @@ def run_llm(switch: Union[TEvent, MPEvent], llm_configuraiton: dict, input_queue
     llm = spawn_language_model_instance(llm_configuraiton)
     while not switch.wait(0.5):
         output_queue.put(llm.generate(input_queue.get()))
+
+
+def run_multiprocessed_llm(switch: MPEvent, llm_configuraiton: dict, input_queue: MPQueue, output_queue: MPQueue) -> None:
+    """
+    Function for running LLM instance in multiprocessing mode.
+    :param switch: Pool killswitch event.
+    :param llm_configuration: Configuration to instantiate LLM.
+    :param input_queue: Input queue.
+    :param output_queue: Output queue.
+    """
+    try:
+        llm = spawn_language_model_instance(llm_configuraiton)
+        while not switch.wait(0.5):
+            output_queue.put(llm.generate(input_queue.get()))
+    except:
+        sys.exit(1)
+    sys.exit(0)
 
 
 class LLMPool(ABC):
@@ -160,7 +179,7 @@ class ThreadedLLMPool(LLMPool):
         self.workers[target_worker]["input"] = TQueue()
         self.workers[target_worker]["output"] = TQueue()
         self.workers[target_worker]["worker"] = Thread(
-            target=run_llm,
+            target=run_treaded_llm,
             args=(
                 self.workers[target_worker]["switch"],
                 self.workers[target_worker]["config"],
@@ -201,11 +220,11 @@ class MulitprocessingLLMPool(LLMPool):
         Internal method for loading LLM.
         :param target_worker: Worker to start.
         """
-        self.workers[target_worker]["switch"] = MPQueue()
+        self.workers[target_worker]["switch"] = mp_get_event()
         self.workers[target_worker]["input"] = MPQueue()
         self.workers[target_worker]["output"] = MPQueue()
         self.workers[target_worker]["worker"] = Process(
-            target=run_llm,
+            target=run_multiprocessed_llm,
             args=(
                 self.workers[target_worker]["switch"],
                 self.workers[target_worker]["config"],
@@ -222,7 +241,9 @@ class MulitprocessingLLMPool(LLMPool):
         :param target_worker: Worker to stop.
         """
         self.workers[target_worker]["switch"].set()
-        self.workers[target_worker]["worker"].join(0)
+        self.workers[target_worker]["worker"].join(1)
+        if self.workers[target_worker]["worker"].exitcode != 0:
+            self.workers[target_worker]["worker"].kill()
         self.workers[target_worker]["running"] = False
 
     def generate(self, target_worker: str, prompt: str) -> Optional[Any]:
