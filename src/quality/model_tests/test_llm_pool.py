@@ -41,9 +41,9 @@ def test_spawner(config: str) -> Optional[Any]:
     return TestLM(config)
 
 
-class LLMPoolTest(unittest.TestCase):
+class ThreadedLLMPoolTest(unittest.TestCase):
     """
-    Test case class for testing URL configuration.
+    Test case class for testing the threaded llm pool.
     """
 
     def test_01_llm_preparation(self):
