@@ -19,6 +19,8 @@ from sqlalchemy.sql import text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.exc import ProgrammingError, OperationalError
+from datetime import datetime as dt
+from uuid import UUID
 from typing import List, Union, Any, Optional
 
 # Dictionary, mapping filter types of filters to SQLAlchemy-compatible filters
@@ -61,8 +63,8 @@ class Dialect(Enum):
     POSTGRESQL = 6
 
 
-# Conversion dictionary for SQLAlchemy typing
-SQLALCHEMY_TYPING_DICTIONARY = {
+# Conversion dictionary for SQLAlchemy typing from type string
+SQLALCHEMY_TYPING_FROM_STRING_DICTIONARY = {
     "int": Integer,
     "dict": JSON,
     "datetime": DateTime,
@@ -141,7 +143,7 @@ def get_classes_from_base(base: Any) -> dict:
             base.metadata.tables}
 
 
-def create_mapping_from_dictionary(mapping_base: Any, entity_type: str, column_data: dict, linkage_data: dict = None, typing_translation: dict = SQLALCHEMY_TYPING_DICTIONARY) -> Any:
+def create_mapping_from_dictionary(mapping_base: Any, entity_type: str, column_data: dict, linkage_data: dict = None, typing_translation: dict = SQLALCHEMY_TYPING_FROM_STRING_DICTIONARY) -> Any:
     """
     Function for creating database mapping from dictionary.
     :param mapping_base: Mapping base class.
