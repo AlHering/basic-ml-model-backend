@@ -5,8 +5,9 @@
 *            (c) 2023 Alexander Hering             *
 ****************************************************
 """
+from typing import Any
 from uuid import uuid4
-from sqlalchemy import Column, String, JSON, ForeignKey, Integer, DateTime, func, Uuid
+from sqlalchemy import Column, String, JSON, ForeignKey, Integer, DateTime, func, Uuid, event
 from sqlalchemy.ext.automap import automap_base, classname_for_table
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, mapped_column
@@ -92,6 +93,10 @@ def create_or_load_database(database_uri: str, dialect: str = "sqlite") -> dict:
                 if dataclasses[dataclass_config]["__tablename__"] not in model:
                     model[dataclasses[dataclass_config]["__tablename__"]] = type(
                         dataclasses[dataclass_config]["__tablename__"].title(), (base,), dataclasses[dataclass_config])
+
+            @event.listens_for(model["instance"], "before_insert")
+            def generate_uuid(mapper: Any, connect: Any, target: Any) -> None:
+                target.uuid = uuid4()
             base.metadata.create_all(bind=engine)
 
         return {
