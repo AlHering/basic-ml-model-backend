@@ -14,8 +14,9 @@ from torch import Tensor
 from langchain.llms import LlamaCpp
 from src.configuration import configuration as cfg
 
+
 """
-Loader classes
+MODEL INSTANTIATION: Loader classes
 """
 
 
@@ -131,12 +132,12 @@ class LocalHFEmbeddingLM(LanguageModel):
 
 
 """
-Parameter gateways
+MODEL INSTANTIATION: Parameter gateways
 """
 
 
 """
-Parameterized Language Models
+MODEL INSTANTIATION: Parameterized Language Models
 """
 SUPPORTED_TYPES = {
     "llamacpp": {
@@ -239,3 +240,15 @@ def spawn_language_model_instance(config: str) -> Optional[LanguageModel]:
     if lm is not None:
         lm = lm(config)
     return lm
+
+
+"""
+MODEL FINETUNING: Huggingface finetuning
+"""
+
+
+def hf_finetune_model() -> None:
+    """
+    Function for finetuning Huggingface models.
+    """
+    pass
