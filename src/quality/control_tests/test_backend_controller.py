@@ -22,11 +22,14 @@ class BackendControllerTest(unittest.TestCase):
     Test case class for testing the backend controller.
     """
 
-    def test_01_llm_preparation(self):
+    def test_01_initiation_process(self):
         """
         Method for testing llm preparation.
         """
-        pass
+        self.assertTrue(os.path.exists(TESTING_PROCESSES_PATH))
+        self.assertTrue(all(key in self.data_infrastructure for key in [
+                        "base", "engine", "model", "session_factory", "primary_keys", "_cache", "llm_pool"]))
+        self.assertTrue(isinstance(self.controller.llm_pool, LLMPool))
 
     @classmethod
     def setUpClass(cls):
