@@ -6,6 +6,7 @@
 ****************************************************
 """
 import unittest
+from src.control.backend_controller import BackendController
 from src.configuration import configuration as cfg
 
 
@@ -28,14 +29,15 @@ class BackendControllerTest(unittest.TestCase):
         """
         Class method for setting up test case.
         """
-        pass
+        cls.controller = BackendController(
+            working_directory=TESTING_PROCESSES_PATH)
 
     @classmethod
     def tearDownClass(cls):
         """
         Class method for setting tearing down test case.
         """
-        pass
+        del cls.controller
 
     @classmethod
     def setup_class(cls):
