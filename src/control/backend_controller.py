@@ -6,6 +6,7 @@
 ****************************************************
 """
 import os
+from uuid import UUID
 from time import sleep
 from datetime import datetime as dt
 from typing import Optional, Any, List
@@ -69,7 +70,7 @@ class BackendController(object):
                 "inactive": 0
             }
             self.llm_pool.prepare_llm(self.get_object(
-                "instance", instance_uuid).config, instance_uuid)
+                "instance", UUID(instance_uuid)).config, instance_uuid)
             self.llm_pool.load_llm(instance_uuid)
             self._cache[instance_uuid]["started"] = dt.now()
         return instance_uuid
