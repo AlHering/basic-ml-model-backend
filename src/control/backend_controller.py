@@ -60,7 +60,7 @@ class BackendController(object):
         """
         if instance_uuid in self._cache:
             if not self.llm_pool.is_running(instance_uuid):
-                self.llm_pool.load_llm(instance_uuid)
+                self.llm_pool.start(instance_uuid)
                 self._cache[instance_uuid]["restarted"] += 1
         else:
             self._cache[instance_uuid] = {
@@ -71,7 +71,7 @@ class BackendController(object):
             }
             self.llm_pool.prepare_llm(self.get_object(
                 "instance", UUID(instance_uuid)).config, instance_uuid)
-            self.llm_pool.load_llm(instance_uuid)
+            self.llm_pool.start(instance_uuid)
             self._cache[instance_uuid]["started"] = dt.now()
         return instance_uuid
 
@@ -83,7 +83,7 @@ class BackendController(object):
         """
         if instance_uuid in self._cache:
             if self.llm_pool.is_running(instance_uuid):
-                self.llm_pool.unload_llm(instance_uuid)
+                self.llm_pool.stop(instance_uuid)
             return instance_uuid
         else:
             return None
