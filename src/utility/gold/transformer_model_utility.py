@@ -6,14 +6,17 @@
 ****************************************************
 """
 import os
+from datasets import load_dataset
 from typing import Any, Optional, List
 from abc import ABC, abstractmethod
 from transformers import AutoTokenizer, AutoModel
+from transformers import TrainingArguments, Trainer, DataCollatorWithPadding
+import evaluate
 import torch.nn.functional as F
 from torch import Tensor
 from langchain.llms import LlamaCpp
-from sklearn.model_selection import train_test_split
 import pandas as pd
+import numpy as np
 from src.configuration import configuration as cfg
 
 
@@ -262,7 +265,10 @@ def load_dataset(dataset_type: str, dataset_target: str, **reading_kwargs: Optio
         return getattr(pd, reading_function_name)(dataset_target, **reading_kwargs)
 
 
-def hf_finetune_model_for_binary_text_classification(base_model_type: str, base_model: str, ft_dataset_type: str, ft_dataset: str, output: str) -> None:
+def hf_finetune_model(base_model_type: str, base_model: str,
+                      ft_dataset_type: str, ft_dataset: str,
+                      x_column: str, y_column: str, evaluation_metric: str,
+                      output: str) -> None:
     """
     Function for finetuning Huggingface models for binay text classification.
     """
@@ -274,3 +280,33 @@ def hf_finetune_model_for_binary_text_classification(base_model_type: str, base_
         local_files_only=True if base_model_type == "local" else False)
 
     dataset = load_dataset(ft_dataset_type, ft_dataset)
+
+    def tokenize_function(examples):
+        return tokenizer(examples[x_column], padding="max_length", truncation=True)
+
+    tokenized_datasets = dataset.map(tokenize_function, batched=True)
+    data_collator = DataCollatorWithPadding(tokenizer)
+
+    training_args = TrainingArguments(output_dir=output)
+    metric = evaluate.load(evaluation_metric)
+
+    def compute_metrics(eval_pred) -> Optional[dict]:
+        """
+        Function for computing metrics based on evaluation prediction.
+        :param eval_pred: Evaluation prediction.
+        :return: Evaluation results as dictionary.
+        """
+        logits, labels = eval_pred
+        predictions = np.argmax(logits, axis=-1)
+        return metric.compute(predictions=predictions, references=labels)
+
+    training_args = TrainingArguments(
+        output_dir="test_trainer", evaluation_strategy="epoch")
+    trainer = Trainer(
+        model=model,
+        args=training_args,
+        train_dataset=tokenized_datasets["train"],
+        eval_dataset=tokenized_datasets["evaluation"],
+        compute_metrics=compute_metrics,
+    )
+    trainer.train()
