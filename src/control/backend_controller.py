@@ -26,7 +26,7 @@ class BackendController(object):
             Defaults to folder 'processes' folder under standard backend data path.
         """
         self.working_directory = os.path.join(cfg.PATHS.BACKEND_PATH, "processes"
-                                              )
+                                              ) if working_directory is None else working_directory
         if not os.path.exists(self.working_directory):
             os.makedirs(self.working_directory)
         self.database_uri = cfg.ENV.get(
