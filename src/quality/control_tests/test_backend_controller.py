@@ -7,7 +7,10 @@
 """
 import unittest
 import gc
+import os
+import shutil
 from src.control.backend_controller import BackendController
+from src.model.backend_control.llm_pool import LLMPool
 from src.configuration import configuration as cfg
 
 
