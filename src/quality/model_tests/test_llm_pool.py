@@ -6,6 +6,7 @@
 ****************************************************
 """
 import unittest
+import gc
 from time import sleep
 import multiprocessing.queues
 from typing import Optional, Any
@@ -178,6 +179,7 @@ class ThreadedLLMPoolTest(unittest.TestCase):
         del cls.test_config_a
         del cls.test_config_b
         del cls.test_config_c
+        gc.collect()
 
     @classmethod
     def setup_class(cls):
@@ -330,6 +332,7 @@ class MultiprocessingLLMPoolTest(unittest.TestCase):
         del cls.test_config_a
         del cls.test_config_b
         del cls.test_config_c
+        gc.collect()
 
     @classmethod
     def setup_class(cls):

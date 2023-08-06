@@ -6,6 +6,7 @@
 ****************************************************
 """
 import unittest
+import gc
 import os
 import shutil
 from datetime import datetime
@@ -143,6 +144,7 @@ class DataBackendTest(unittest.TestCase):
         del cls.data_infrastructure
         if os.path.exists(cfg.PATHS.TEST_PATH):
             shutil.rmtree(cfg.PATHS.TEST_PATH, ignore_errors=True)
+        gc.collect()
 
     @classmethod
     def setup_class(cls):

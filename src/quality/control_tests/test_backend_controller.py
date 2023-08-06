@@ -6,6 +6,7 @@
 ****************************************************
 """
 import unittest
+import gc
 from src.control.backend_controller import BackendController
 from src.configuration import configuration as cfg
 
@@ -52,6 +53,7 @@ class BackendControllerTest(unittest.TestCase):
         Alternative class for setting tearing down test case.
         """
         cls.tearDownClass()
+        gc.collect()
 
 
 if __name__ == '__main__':
