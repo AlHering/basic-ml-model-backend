@@ -36,6 +36,8 @@ class BackendControllerTest(unittest.TestCase):
         """
         Class method for setting up test case.
         """
+        if not os.path.exists(cfg.PATHS.TEST_PATH):
+            os.makedirs(cfg.PATHS.TEST_PATH)
         cls.controller = BackendController(
             working_directory=TESTING_PROCESSES_PATH)
 
@@ -45,6 +47,9 @@ class BackendControllerTest(unittest.TestCase):
         Class method for setting tearing down test case.
         """
         del cls.controller
+        if os.path.exists(cfg.PATHS.TEST_PATH):
+            shutil.rmtree(cfg.PATHS.TEST_PATH, ignore_errors=True)
+        gc.collect()
 
     @classmethod
     def setup_class(cls):
