@@ -14,7 +14,7 @@ from src.model.backend_control.llm_pool import LLMPool
 from src.configuration import configuration as cfg
 
 
-TESTING_PROCESSES_PATH = f"{cfg.PATHS.TEST_PATH}/processes"
+TESTING_PATH = cfg.PATHS.TEST_PATH
 
 
 class BackendControllerTest(unittest.TestCase):
@@ -26,8 +26,8 @@ class BackendControllerTest(unittest.TestCase):
         """
         Method for testing llm preparation.
         """
-        self.assertTrue(os.path.exists(TESTING_PROCESSES_PATH))
-        self.assertTrue(all(key in self.data_infrastructure for key in [
+        self.assertTrue(os.path.exists(TESTING_PATH))
+        self.assertTrue(all(getattr(self.controller, attribute) is not None for attribute in [
                         "base", "engine", "model", "session_factory", "primary_keys", "_cache", "llm_pool"]))
         self.assertTrue(isinstance(self.controller.llm_pool, LLMPool))
 
@@ -36,10 +36,10 @@ class BackendControllerTest(unittest.TestCase):
         """
         Class method for setting up test case.
         """
-        if not os.path.exists(cfg.PATHS.TEST_PATH):
-            os.makedirs(cfg.PATHS.TEST_PATH)
+        if not os.path.exists(TESTING_PATH):
+            os.makedirs(TESTING_PATH)
         cls.controller = BackendController(
-            working_directory=TESTING_PROCESSES_PATH)
+            working_directory=TESTING_PATH)
 
     @classmethod
     def tearDownClass(cls):
@@ -47,8 +47,8 @@ class BackendControllerTest(unittest.TestCase):
         Class method for setting tearing down test case.
         """
         del cls.controller
-        if os.path.exists(cfg.PATHS.TEST_PATH):
-            shutil.rmtree(cfg.PATHS.TEST_PATH, ignore_errors=True)
+        if os.path.exists(TESTING_PATH):
+            shutil.rmtree(TESTING_PATH, ignore_errors=True)
         gc.collect()
 
     @classmethod
