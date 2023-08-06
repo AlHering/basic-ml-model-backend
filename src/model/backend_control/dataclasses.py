@@ -13,52 +13,59 @@ from sqlalchemy.orm import relationship, mapped_column
 from src.utility.bronze import sqlalchemy_utility
 
 
-MODEL = {
-    "__tablename__": "model",
-    "__table_args__": {"comment": "Model Table."},
-    "id": Column(Integer, primary_key=True, unique=True, nullable=False, autoincrement=True,
-                 comment="UUID of the model."),
-    "path": Column(String, nullable=False,
-                   comment="Path of the model."),
-    "type": Column(String, nullable=False,
-                   comment="Type of the model."),
-    "loader": Column(String, nullable=False,
-                     comment="Loader for the model."),
-    "created": Column(DateTime, server_default=func.now(),
-                      comment="Timestamp of creation."),
-    "updated": Column(DateTime, server_default=func.now(), server_onupdate=func.now(),
-                      comment="Timestamp of last update."),
-    "instances": relationship("Instance", back_populates="model")
-}
+def create_dataclass_configuration() -> dict:
+    """
+    Function for creating dataclass configs.
+    :return: Dictionary with dataclass configs.
+    """
+    model = {
+        "__tablename__": "model",
+        "__table_args__": {"comment": "Model Table."},
+        "id": Column(Integer, primary_key=True, unique=True, nullable=False, autoincrement=True,
+                     comment="UUID of the model."),
+        "path": Column(String, nullable=False,
+                       comment="Path of the model."),
+        "type": Column(String, nullable=False,
+                       comment="Type of the model."),
+        "loader": Column(String, nullable=False,
+                         comment="Loader for the model."),
+        "created": Column(DateTime, server_default=func.now(),
+                          comment="Timestamp of creation."),
+        "updated": Column(DateTime, server_default=func.now(), server_onupdate=func.now(),
+                          comment="Timestamp of last update."),
+        "instances": relationship("Instance", back_populates="model")
+    }
 
-INSTANCE = {
-    "__tablename__": "instance",
-    "__table_args__": {"comment": "Instance Table."},
-    "uuid": Column(Uuid(as_uuid=True), primary_key=True, unique=True, nullable=False, default=uuid4,
-                   comment="UUID of the instance."),
-    "config": Column(JSON, nullable=False,
-                     comment="Instance configuration."),
-    "created": Column(DateTime, server_default=func.now(),
-                      comment="Timestamp of creation."),
-    "updated": Column(DateTime, server_default=func.now(), server_onupdate=func.now(),
-                      comment="Timestamp of last update."),
-    "model_id": mapped_column(ForeignKey("model.id")),
-    "model": relationship("Model", back_populates="instances")
-}
+    instance = {
+        "__tablename__": "instance",
+        "__table_args__": {"comment": "Instance Table."},
+        "uuid": Column(Uuid(as_uuid=True), primary_key=True, unique=True, nullable=False, default=uuid4,
+                       comment="UUID of the instance."),
+        "config": Column(JSON, nullable=False,
+                         comment="Instance configuration."),
+        "created": Column(DateTime, server_default=func.now(),
+                          comment="Timestamp of creation."),
+        "updated": Column(DateTime, server_default=func.now(), server_onupdate=func.now(),
+                          comment="Timestamp of last update."),
+        "model_id": mapped_column(ForeignKey("model.id")),
+        "model": relationship("Model", back_populates="instances")
+    }
 
-LOG = {
-    "__tablename__": "log",
-    "__table_args__": {"comment": "Logging Table."},
-    "id": Column(Integer, primary_key=True, autoincrement=True, unique=True, nullable=False,
-                 comment="ID of the logging entry."),
-    "request": Column(JSON, nullable=False,
-                      comment="Request, sent to the backend."),
-    "response": Column(JSON, comment="Response, given by the backend."),
-    "started": Column(DateTime, server_default=func.now(),
-                      comment="Timestamp of request recieval."),
-    "finished": Column(DateTime, server_default=func.now(), server_onupdate=func.now(),
-                       comment="Timestamp of reponse transmission.")
-}
+    log = {
+        "__tablename__": "log",
+        "__table_args__": {"comment": "Logging Table."},
+        "id": Column(Integer, primary_key=True, autoincrement=True, unique=True, nullable=False,
+                     comment="ID of the logging entry."),
+        "request": Column(JSON, nullable=False,
+                          comment="Request, sent to the backend."),
+        "response": Column(JSON, comment="Response, given by the backend."),
+        "started": Column(DateTime, server_default=func.now(),
+                          comment="Timestamp of request recieval."),
+        "finished": Column(DateTime, server_default=func.now(), server_onupdate=func.now(),
+                           comment="Timestamp of reponse transmission.")
+    }
+
+    return {"model": model, "instance": instance, "log": log}
 
 
 def create_or_load_database(database_uri: str, dialect: str = "sqlite") -> dict:
@@ -80,11 +87,11 @@ def create_or_load_database(database_uri: str, dialect: str = "sqlite") -> dict:
 
         if not model:
             base = declarative_base()
-
-            for dataclass_content in [MODEL, INSTANCE, LOG]:
-                if dataclass_content["__tablename__"] not in model:
-                    model[dataclass_content["__tablename__"]] = type(
-                        dataclass_content["__tablename__"].title(), (base,), dataclass_content)
+            dataclasses = create_dataclass_configuration()
+            for dataclass_config in dataclasses:
+                if dataclasses[dataclass_config]["__tablename__"] not in model:
+                    model[dataclasses[dataclass_config]["__tablename__"]] = type(
+                        dataclasses[dataclass_config]["__tablename__"].title(), (base,), dataclasses[dataclass_config])
             base.metadata.create_all(bind=engine)
 
         return {
