@@ -21,6 +21,7 @@ RUN apt add-repository -y ppa:deadsnakes/ppa apt-get update && apt-get install -
     software-properties-common \
     make build-essential wget curl git nano ffmpeg libsm6 libxext6 \
     p7zip-full p7zip-rar \
+    git \
     python3.10-full python-is-python3 \
     pkg-config libcairo2-dev libjpeg-dev libgif-dev && apt-get clean -y
 
