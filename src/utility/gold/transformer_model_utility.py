@@ -247,8 +247,25 @@ MODEL FINETUNING: Huggingface finetuning
 """
 
 
-def hf_finetune_model() -> None:
+def load_dataset(dataset_type: str, dataset_target: str) -> Any:
+    """
+    Function for loading a dataset.
+    :param dataset_type: Type of the dataset.
+    :param dataset_target: Dataset target.
+    :return: Loaded dataset.
+    """
+    pass
+
+
+def hf_finetune_model(base_model_type: str, base_model: str, ft_dataset_type: str, ft_dataset: str, output: str) -> None:
     """
     Function for finetuning Huggingface models.
     """
-    pass
+    tokenizer = AutoTokenizer.from_pretrained(
+        pretrained_model_name_or_path=base_model,
+        local_files_only=True if base_model_type == "local" else False)
+    model = AutoModel.from_pretrained(
+        pretrained_model_name_or_path=base_model,
+        local_files_only=True if base_model_type == "local" else False)
+
+    dataset = load_dataset(ft_dataset_type, ft_dataset)
