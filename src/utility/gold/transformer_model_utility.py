@@ -12,6 +12,8 @@ from transformers import AutoTokenizer, AutoModel
 import torch.nn.functional as F
 from torch import Tensor
 from langchain.llms import LlamaCpp
+from sklearn.model_selection import train_test_split
+import pandas as pd
 from src.configuration import configuration as cfg
 
 
@@ -247,19 +249,22 @@ MODEL FINETUNING: Huggingface finetuning
 """
 
 
-def load_dataset(dataset_type: str, dataset_target: str) -> Any:
+def load_dataset(dataset_type: str, dataset_target: str, **reading_kwargs: Optional[Any]) -> Optional[pd.DataFrame]:
     """
     Function for loading a dataset.
     :param dataset_type: Type of the dataset.
     :param dataset_target: Dataset target.
-    :return: Loaded dataset.
+    :param reading_kwargs: Arbitrary keyword arguments for reading in data.
+    :return: Dataframe.
     """
-    pass
+    reading_function_name = f"read_{dataset_type.lower()}"
+    if hasattr(pd, reading_function_name):
+        return getattr(pd, reading_function_name)(dataset_target, **reading_kwargs)
 
 
-def hf_finetune_model(base_model_type: str, base_model: str, ft_dataset_type: str, ft_dataset: str, output: str) -> None:
+def hf_finetune_model_for_binary_text_classification(base_model_type: str, base_model: str, ft_dataset_type: str, ft_dataset: str, output: str) -> None:
     """
-    Function for finetuning Huggingface models.
+    Function for finetuning Huggingface models for binay text classification.
     """
     tokenizer = AutoTokenizer.from_pretrained(
         pretrained_model_name_or_path=base_model,
