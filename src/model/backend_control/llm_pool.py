@@ -17,7 +17,7 @@ from src.utility.gold.transformer_model_utility import spawn_language_model_inst
 from src.utility.bronze import dictionary_utility
 
 
-def run_treaded_llm(switch: TEvent, llm_configuraiton: dict, input_queue: TQueue, output_queue: TQueue) -> None:
+def run_threaded_llm(switch: TEvent, llm_configuraiton: dict, input_queue: TQueue, output_queue: TQueue) -> None:
     """
     Function for running LLM instance in threading mode.
     :param switch: Pool killswitch event.
@@ -179,7 +179,7 @@ class ThreadedLLMPool(LLMPool):
         self.workers[target_worker]["input"] = TQueue()
         self.workers[target_worker]["output"] = TQueue()
         self.workers[target_worker]["worker"] = Thread(
-            target=run_treaded_llm,
+            target=run_threaded_llm,
             args=(
                 self.workers[target_worker]["switch"],
                 self.workers[target_worker]["config"],
