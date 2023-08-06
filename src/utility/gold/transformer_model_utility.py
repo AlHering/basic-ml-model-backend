@@ -6,16 +6,22 @@
 ****************************************************
 """
 import os
+from datasets import load_dataset
 from typing import Any, Optional, List
 from abc import ABC, abstractmethod
 from transformers import AutoTokenizer, AutoModel
+from transformers import TrainingArguments, Trainer, DataCollatorWithPadding
+import evaluate
 import torch.nn.functional as F
 from torch import Tensor
 from langchain.llms import LlamaCpp
+import pandas as pd
+import numpy as np
 from src.configuration import configuration as cfg
 
+
 """
-Loader classes
+MODEL INSTANTIATION: Loader classes
 """
 
 
@@ -131,12 +137,12 @@ class LocalHFEmbeddingLM(LanguageModel):
 
 
 """
-Parameter gateways
+MODEL INSTANTIATION: Parameter gateways
 """
 
 
 """
-Parameterized Language Models
+MODEL INSTANTIATION: Parameterized Language Models
 """
 SUPPORTED_TYPES = {
     "llamacpp": {
@@ -239,3 +245,68 @@ def spawn_language_model_instance(config: str) -> Optional[LanguageModel]:
     if lm is not None:
         lm = lm(config)
     return lm
+
+
+"""
+MODEL FINETUNING: Huggingface finetuning
+"""
+
+
+def load_dataset(dataset_type: str, dataset_target: str, **reading_kwargs: Optional[Any]) -> Optional[pd.DataFrame]:
+    """
+    Function for loading a dataset.
+    :param dataset_type: Type of the dataset.
+    :param dataset_target: Dataset target.
+    :param reading_kwargs: Arbitrary keyword arguments for reading in data.
+    :return: Dataframe.
+    """
+    reading_function_name = f"read_{dataset_type.lower()}"
+    if hasattr(pd, reading_function_name):
+        return getattr(pd, reading_function_name)(dataset_target, **reading_kwargs)
+
+
+def hf_finetune_model(base_model_type: str, base_model: str,
+                      ft_dataset_type: str, ft_dataset: str,
+                      x_column: str, y_column: str, evaluation_metric: str,
+                      output: str) -> None:
+    """
+    Function for finetuning Huggingface models for binay text classification.
+    """
+    tokenizer = AutoTokenizer.from_pretrained(
+        pretrained_model_name_or_path=base_model,
+        local_files_only=True if base_model_type == "local" else False)
+    model = AutoModel.from_pretrained(
+        pretrained_model_name_or_path=base_model,
+        local_files_only=True if base_model_type == "local" else False)
+
+    dataset = load_dataset(ft_dataset_type, ft_dataset)
+
+    def tokenize_function(examples):
+        return tokenizer(examples[x_column], padding="max_length", truncation=True)
+
+    tokenized_datasets = dataset.map(tokenize_function, batched=True)
+    data_collator = DataCollatorWithPadding(tokenizer)
+
+    training_args = TrainingArguments(output_dir=output)
+    metric = evaluate.load(evaluation_metric)
+
+    def compute_metrics(eval_pred) -> Optional[dict]:
+        """
+        Function for computing metrics based on evaluation prediction.
+        :param eval_pred: Evaluation prediction.
+        :return: Evaluation results as dictionary.
+        """
+        logits, labels = eval_pred
+        predictions = np.argmax(logits, axis=-1)
+        return metric.compute(predictions=predictions, references=labels)
+
+    training_args = TrainingArguments(
+        output_dir="test_trainer", evaluation_strategy="epoch")
+    trainer = Trainer(
+        model=model,
+        args=training_args,
+        train_dataset=tokenized_datasets["train"],
+        eval_dataset=tokenized_datasets["evaluation"],
+        compute_metrics=compute_metrics,
+    )
+    trainer.train()

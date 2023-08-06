@@ -17,9 +17,9 @@ from src.model.backend_control.dataclasses import create_or_load_database, sqlal
 TESTING_DB_PATH = f"{cfg.PATHS.TEST_PATH}/backend.db"
 
 
-class DataclassesTest(unittest.TestCase):
+class DataBackendTest(unittest.TestCase):
     """
-    Test case class for testing URL configuration.
+    Test case class for testing the data backend.
     """
 
     def test_01_infrastructure(self) -> None:

@@ -19,9 +19,11 @@ class BackendController(object):
     Controller class for handling backend interface requests.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, working_directory: str = None) -> None:
         """
         Initiation method.
+        :param working_directory: Working directory.
+            Defaults to folder 'processes' folder under standard backend data path.
         """
         self.working_directory = os.path.join(cfg.PATHS.BACKEND_PATH, "processes"
                                               )

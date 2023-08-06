@@ -13,7 +13,7 @@ from src.configuration import configuration as cfg
 
 class ConfigurationTest(unittest.TestCase):
     """
-    Test case class for testing URL configuration.
+    Test case class for testing the configuration base.
     """
 
     def test_urls(self) -> None:

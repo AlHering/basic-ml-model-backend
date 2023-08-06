@@ -21,9 +21,10 @@ RUN apt add-repository -y ppa:deadsnakes/ppa apt-get update && apt-get install -
     software-properties-common \
     make build-essential wget curl git nano ffmpeg libsm6 libxext6 \
     p7zip-full p7zip-rar \
+    git git-lfs\
     python3.10-full python-is-python3 \
-    pkg-config libcairo2-dev libjpeg-dev libgif-dev && apt-get clean -y
-
+    pkg-config libcairo2-dev libjpeg-dev libgif-dev \
+    && apt-get clean -y && git lfs install
 
 # Download and install miniconda
 RUN curl -Lk "https://repo.anaconda.com/miniconda/Miniconda3-py310_23.1.0-1-Linux-x86_64.sh" > "miniconda_installer.sh" \
