@@ -5,7 +5,6 @@
 *            (c) 2023 Alexander Hering             *
 ****************************************************
 """
-from __future__ import annotations
 from uuid import uuid4
 from sqlalchemy import Column, String, JSON, ForeignKey, Integer, DateTime, func, Uuid
 from sqlalchemy.ext.automap import automap_base, classname_for_table
