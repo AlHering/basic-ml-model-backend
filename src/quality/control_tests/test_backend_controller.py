@@ -6,6 +6,10 @@
 ****************************************************
 """
 import unittest
+from src.configuration import configuration as cfg
+
+
+TESTING_PROCESSES_PATH = f"{cfg.PATHS.TEST_PATH}/processes"
 
 
 class BackendControllerTest(unittest.TestCase):
