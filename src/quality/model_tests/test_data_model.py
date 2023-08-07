@@ -12,13 +12,13 @@ import shutil
 from datetime import datetime
 from typing import Any
 from src.configuration import configuration as cfg
-from src.model.backend_control.dataclasses import create_or_load_database, sqlalchemy_utility
+from src.model.model_control.model_database import ModelDatabase, sqlalchemy_utilit
 
 
 TESTING_DB_PATH = f"{cfg.PATHS.TEST_PATH}/backend.db"
 
 
-class DataBackendTest(unittest.TestCase):
+class DataModelTest(unittest.TestCase):
     """
     Test case class for testing the data backend.
     """
@@ -131,16 +131,24 @@ class DataBackendTest(unittest.TestCase):
         """
         if not os.path.exists(cfg.PATHS.TEST_PATH):
             os.makedirs(cfg.PATHS.TEST_PATH)
-        cls.data_infrastructure = create_or_load_database(
-            f"sqlite:///{TESTING_DB_PATH}")
+        cls.database = ModelDatabase(
+            database_uri=f"sqlite:///{TESTING_DB_PATH}",
+            schema="test.",
+            verbose=True)
+
         cls.example_model_data = {
             "path": "TheBloke_vicuna-7B-v1.3-GGML",
-            "type": "llamacpp"
+            "task": "text-generation",
+            "architecture": "llama"
+        }
+        cls.example_modelversion_data = {
+            "path": "vicuna-7b-v1.3.ggmlv3.q4_0.bin",
+            "format": "ggml",
+            "quantization": "q4_0"
         }
         cls.example_instance_data = {
-            "type": "llamacpp",
+            "backend": "llamacpp",
             "loader": "_default",
-            "model_version": "vicuna-7b-v1.3.ggmlv3.q4_0.bin",
             "loader_kwargs": {
                 "n_ctx": 2048,
                 "verbose": True
@@ -148,10 +156,12 @@ class DataBackendTest(unittest.TestCase):
         }
         cls.example_log_data = {"request":
                                 {"my_request_key": "my_request_value"}}
-        cls.model_columns = ["id", "path", "type",
-                             "url", "sha256", "versions", "created", "updated"]
-        cls.instance_columns = ["uuid", "type", "loader", "loader_kwargs", "model_version",
-                                "gateway", "created", "updated", "model_id"]
+        cls.model_columns = ["id", "path", "task", "architecture", "parametercount"
+                             "url", "meta_data", "created", "updated", "inactive"]
+        cls.modelversion_columns = ["id", "path", "format", "quantization"
+                                    "url", "meta_data", "created", "updated", "inactive"]
+        cls.instance_columns = ["uuid", "backend", "loader", "loader_kwargs", "gateway",
+                                "meta_data", "created", "updated", "inactive", "model_id", "modelversion_id"]
         cls.log_columns = ["id", "request", "response", "started", "finished"]
 
     @classmethod
