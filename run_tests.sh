@@ -38,7 +38,7 @@ if [[ ! -d $VENV_DIR ]]; then
 fi
 
 printf "\n%s\n" "${delimiter}"
-printf "Activating conda environment and entering starting backend server..."
+printf "Activating conda environment and running tests..."
 printf "\n%s\n" "${delimiter}"
 source "${CONDA_DIR}/etc/profile.d/conda.sh" \
     && conda activate $VENV_DIR \
