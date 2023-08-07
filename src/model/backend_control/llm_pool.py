@@ -22,10 +22,11 @@ def run_threaded_llm(switch: TEvent, llm_configuraiton: dict, input_queue: TQueu
     Function for running LLM instance in threading mode.
     :param switch: Pool killswitch event.
     :param llm_configuration: Configuration to instantiate LLM.
+            Dictionary containing "model_path" and "model_config".
     :param input_queue: Input queue.
     :param output_queue: Output queue.
     """
-    llm = spawn_language_model_instance(llm_configuraiton)
+    llm = spawn_language_model_instance(**llm_configuraiton)
     while not switch.wait(0.5):
         output_queue.put(llm.generate(input_queue.get()))
 
@@ -35,11 +36,12 @@ def run_multiprocessed_llm(switch: MPEvent, llm_configuraiton: dict, input_queue
     Function for running LLM instance in multiprocessing mode.
     :param switch: Pool killswitch event.
     :param llm_configuration: Configuration to instantiate LLM.
+            Dictionary containing "model_path" and "model_config".
     :param input_queue: Input queue.
     :param output_queue: Output queue.
     """
     try:
-        llm = spawn_language_model_instance(llm_configuraiton)
+        llm = spawn_language_model_instance(**llm_configuraiton)
         while not switch.wait(0.5):
             output_queue.put(llm.generate(input_queue.get()))
     except:
@@ -100,6 +102,7 @@ class LLMPool(ABC):
         """
         Method for validating resources before LLM instantiation.
         :param llm_configuration: LLM configuration.
+            Dictionary containing "model_path" and "model_config".
         :param queue_spawns: Queue up instanciation until resources are available.
             Defaults to False.
         :return: True, if resources are available, else False.
@@ -112,6 +115,7 @@ class LLMPool(ABC):
         Method for resetting LLM instance to a new config.
         :param target_worker: Worker of instance.
         :param llm_configuration: LLM configuration.
+            Dictionary containing "model_path" and "model_config".
         :return: Worker UUID.
         """
         if not dictionary_utility.check_equality(self.workers[target_worker]["config"], llm_configuration):
