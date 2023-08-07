@@ -7,7 +7,7 @@
 """
 from typing import Any
 from uuid import uuid4
-from sqlalchemy import Column, String, JSON, ForeignKey, Integer, DateTime, func, Uuid, event
+from sqlalchemy import Column, String, JSON, ForeignKey, Integer, DateTime, func, Uuid, Text, event
 from sqlalchemy.ext.automap import automap_base, classname_for_table
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, mapped_column
@@ -28,8 +28,12 @@ def create_dataclass_configuration() -> dict:
                        comment="Path of the model."),
         "type": Column(String, nullable=False,
                        comment="Type of the model."),
-        "loader": Column(String, nullable=False,
-                         comment="Loader for the model."),
+        "url": Column(String,
+                      comment="URL for the model."),
+        "sha256": Column(Text,
+                         comment="URL for the model."),
+        "versions": Column(JSON,
+                           comment="Versions of the model."),
         "created": Column(DateTime, server_default=func.now(),
                           comment="Timestamp of creation."),
         "updated": Column(DateTime, server_default=func.now(), server_onupdate=func.now(),
@@ -42,8 +46,16 @@ def create_dataclass_configuration() -> dict:
         "__table_args__": {"comment": "Instance Table."},
         "uuid": Column(Uuid(as_uuid=True), primary_key=True, unique=True, nullable=False, default=uuid4,
                        comment="UUID of the instance."),
-        "config": Column(JSON, nullable=False,
-                         comment="Instance configuration."),
+        "type": Column(String, nullable=False,
+                       comment="Type of the instance."),
+        "loader": Column(String, nullable=False,
+                         comment="Loader for the instance."),
+        "model_version": Column(String, nullable=False,
+                                comment="Loader for the instance."),
+        "gateway": Column(String,
+                          comment="Gateway for instance interaction."),
+        "loading_kwargs": Column(JSON,
+                                 comment="Additional loading keyword arguments."),
         "created": Column(DateTime, server_default=func.now(),
                           comment="Timestamp of creation."),
         "updated": Column(DateTime, server_default=func.now(), server_onupdate=func.now(),
