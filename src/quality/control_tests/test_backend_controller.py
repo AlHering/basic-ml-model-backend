@@ -9,7 +9,7 @@ import unittest
 import gc
 import os
 import shutil
-from src.control.backend_controller import BackendController
+from src.control.backend_controller import BackendController, UUID
 from src.model.backend_control.llm_pool import LLMPool
 from src.configuration import configuration as cfg
 
@@ -24,12 +24,41 @@ class BackendControllerTest(unittest.TestCase):
 
     def test_01_initiation_process(self):
         """
-        Method for testing llm preparation.
+        Method for testing controller instantiation.
         """
         self.assertTrue(os.path.exists(TESTING_PATH))
         self.assertTrue(all(getattr(self.controller, attribute) is not None for attribute in [
                         "base", "engine", "model", "session_factory", "primary_keys", "_cache", "llm_pool"]))
         self.assertTrue(isinstance(self.controller.llm_pool, LLMPool))
+
+    def test_02_object_handling(self):
+        """
+        Method for testing object handling.
+        """
+        model_id = self.controller.post_object(
+            "model", **self.example_model_data)
+        self.assertTrue(isinstance(model_id, int))
+        self.assertEqual(model_id, 1)
+        registered_models = self.controller.get_objects("model")
+        self.assertEqual(len(registered_models), 1)
+        self.assertEqual(registered_models[0].id, model_id)
+        self.assertEqual(
+            registered_models[0].loader, self.example_model_data["loader"])
+        self.controller.patch_object("model", model_id, loader="_default")
+        self.assertEqual(self.controller.get_object(
+            "model", 1).loader, "_default")
+
+        instance_uuid = self.controller.post_object(
+            "instance", **self.example_instance_data)
+        registered_instances = self.controller.get_objects("instance")
+        self.assertTrue(isinstance(instance_uuid, UUID))
+        self.assertEqual(len(registered_instances), 1)
+        self.assertEqual(registered_instances[0].uuid, instance_uuid)
+
+        self.controller.delete_object("model", model_id)
+        self.controller.delete_object("instance", instance_uuid)
+        self.assertEqual(len(self.controller.get_objects("model")), 0)
+        self.assertEqual(len(self.controller.get_objects("instance")), 0)
 
     @classmethod
     def setUpClass(cls):
@@ -40,6 +69,14 @@ class BackendControllerTest(unittest.TestCase):
             os.makedirs(TESTING_PATH)
         cls.controller = BackendController(
             working_directory=TESTING_PATH)
+        cls.example_model_data = {"path": "TheBloke_vicuna-7B-v1.3-GGML",
+                                  "type": "llamacpp",
+                                  "loader": "my_loader"}
+        cls.example_instance_data = {"config": {
+            "path": "TheBloke_vicuna-7B-v1.3-GGML/vicuna-7b-v1.3.ggmlv3.q4_0.bin",
+            "type": "llamacpp",
+            "loader": "_default"},
+            "model_id": 1}
 
     @classmethod
     def tearDownClass(cls):
