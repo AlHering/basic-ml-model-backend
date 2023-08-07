@@ -105,8 +105,7 @@ class BackendControllerTest(unittest.TestCase):
         cls.controller = BackendController(
             working_directory=TESTING_PATH)
         cls.example_model_data = {"path": "TheBloke_vicuna-7B-v1.3-GGML",
-                                  "type": "llamacpp",
-                                  "loader": "my_loader"}
+                                  "type": "llamacpp"}
         cls.example_instance_data = {"config": {
             "path": "TheBloke_vicuna-7B-v1.3-GGML/vicuna-7b-v1.3.ggmlv3.q4_0.bin",
             "type": "llamacpp",
