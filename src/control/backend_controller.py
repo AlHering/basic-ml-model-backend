@@ -32,7 +32,6 @@ class BackendController(object):
             os.makedirs(self.working_directory)
         self.database_uri = cfg.ENV.get(
             "BACKEND_DATABASE", f"sqlite:///{self.working_directory}/backend.db")
-        # TODO: Add typing gateway to dataclass handling -> UUIDs with '-' are not parsed correctly
         representation = create_or_load_database(self.database_uri)
         self.base = representation["base"]
         self.engine = representation["engine"]
