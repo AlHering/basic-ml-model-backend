@@ -38,7 +38,7 @@ def test_spawner(config: str) -> Optional[Any]:
             :param prompt: User prompt.
             :return: Response, if generation method is available else None.
             """
-            return self.representation[prompt]
+            return self.representation([prompt])
 
     return TestLM(config)
 
