@@ -44,10 +44,14 @@ class BackendControllerTest(unittest.TestCase):
         self.assertEqual(len(registered_models), 1)
         self.assertEqual(registered_models[0].id, model_id)
         self.assertEqual(
-            registered_models[0].loader, self.example_model_data["loader"])
-        self.controller.patch_object("model", model_id, loader="_default")
-        self.assertEqual(self.controller.get_object(
-            "model", 1).loader, "_default")
+            registered_models[0].type, self.example_model_data["type"])
+        self.controller.patch_object(
+            "model", model_id, **self.example_model_patch)
+        patched_model_object = self.controller.get_object(
+            "model", model_id)
+        for key in self.example_model_patch:
+            self.assertEqual(getattr(patched_model_object, key),
+                             self.example_model_patch[key])
 
         instance_uuid = self.controller.post_object(
             "instance", **self.example_instance_data)
@@ -65,7 +69,6 @@ class BackendControllerTest(unittest.TestCase):
         """
         Method for testing LLM handling.
         """
-        self.example_model_data["loader"] = "_default"
         model_id = self.controller.post_object(
             "model", **self.example_model_data)
         self.example_instance_data["model_id"] = model_id
@@ -104,15 +107,20 @@ class BackendControllerTest(unittest.TestCase):
             os.makedirs(TESTING_PATH)
         cls.controller = BackendController(
             working_directory=TESTING_PATH)
+        cls.controller.llm_pool.generation_timeout = 360.0
         cls.example_model_data = {"path": "TheBloke_vicuna-7B-v1.3-GGML",
                                   "type": "llamacpp"}
-        cls.example_instance_data = {"config": {
-            "path": "TheBloke_vicuna-7B-v1.3-GGML/vicuna-7b-v1.3.ggmlv3.q4_0.bin",
+        cls.example_model_patch = {"type": "exllama"}
+        cls.example_instance_data = {
             "type": "llamacpp",
             "loader": "_default",
-            "context": 2000,
-            "verbose": True},
-            "model_id": 1}
+            "model_version": "vicuna-7b-v1.3.ggmlv3.q4_0.bin",
+            "loader_kwargs": {
+                "n_ctx": 2048,
+                "verbose": True
+            },
+            "model_id": 1
+        }
 
     @classmethod
     def tearDownClass(cls):
@@ -121,6 +129,7 @@ class BackendControllerTest(unittest.TestCase):
         """
         del cls.controller
         del cls.example_model_data
+        del cls.example_model_patch
         del cls.example_instance_data
         if os.path.exists(TESTING_PATH):
             shutil.rmtree(TESTING_PATH, ignore_errors=True)
