@@ -159,10 +159,13 @@ class DataModelTest(unittest.TestCase):
         cls.model_columns = ["id", "path", "task", "architecture", "parametercount"
                              "url", "meta_data", "created", "updated", "inactive"]
         cls.modelversion_columns = ["id", "path", "format", "quantization"
-                                    "url", "meta_data", "created", "updated", "inactive"]
+                                    "url", "meta_data", "created", "updated", "inactive", "model_id"]
         cls.instance_columns = ["uuid", "backend", "loader", "loader_kwargs", "gateway",
                                 "meta_data", "created", "updated", "inactive", "model_id", "modelversion_id"]
-        cls.log_columns = ["id", "request", "response", "started", "finished"]
+        cls.asset_columns = ["id", "path", "type", "url", "sha256",
+                             "meta_data", "created", "updated", "inactive", "model_id", "modelversion_id"]
+        cls.log_columns = ["id", "request",
+                           "response", "requested", "responded"]
 
     @classmethod
     def tearDownClass(cls):

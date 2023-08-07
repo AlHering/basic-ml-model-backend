@@ -176,10 +176,10 @@ def populate_data_instrastructure(base: Any, schema: str, model: dict) -> None:
         request = Column(JSON, nullable=False,
                          comment="Request, sent to the backend."),
         response = Column(JSON, comment="Response, given by the backend."),
-        started = Column(DateTime, server_default=func.now(),
-                         comment="Timestamp of request recieval."),
-        finished = Column(DateTime, server_default=func.now(), server_onupdate=func.now(),
-                          comment="Timestamp of reponse transmission.")
+        requested = Column(DateTime, server_default=func.now(),
+                           comment="Timestamp of request recieval."),
+        responded = Column(DateTime, server_default=func.now(), server_onupdate=func.now(),
+                           comment="Timestamp of reponse transmission.")
 
     for dataclass in [Model, Modelversion, Modelinstance, Asset, Log]:
         model[dataclass.__tablename__] = dataclass
