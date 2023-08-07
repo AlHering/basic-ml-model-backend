@@ -17,7 +17,7 @@ from src.utility.gold.transformer_model_utility import spawn_language_model_inst
 from src.utility.bronze import dictionary_utility
 
 
-def run_threaded_llm(switch: TEvent, llm_configuraiton: dict, input_queue: TQueue, output_queue: TQueue, timeout: float = None) -> None:
+def run_threaded_llm(switch: TEvent, llm_configuraiton: dict, input_queue: TQueue, output_queue: TQueue) -> None:
     """
     Function for running LLM instance in threading mode.
     :param switch: Pool killswitch event.
@@ -25,18 +25,13 @@ def run_threaded_llm(switch: TEvent, llm_configuraiton: dict, input_queue: TQueu
             Dictionary containing "model_path" and "model_config".
     :param input_queue: Input queue.
     :param output_queue: Output queue.
-    :param timeout: Timeout for getting.
     """
     llm = spawn_language_model_instance(**llm_configuraiton)
     while not switch.wait(0.5):
-        try:
-            response = llm.generate(input_queue.get(timeout=timeout))
-        except Empty:
-            response = None
-        output_queue.put(response)
+        output_queue.put(llm.generate(input_queue.get()))
 
 
-def run_multiprocessed_llm(switch: MPEvent, llm_configuraiton: dict, input_queue: MPQueue, output_queue: MPQueue, timeout: float = None) -> None:
+def run_multiprocessed_llm(switch: MPEvent, llm_configuraiton: dict, input_queue: MPQueue, output_queue: MPQueue) -> None:
     """
     Function for running LLM instance in multiprocessing mode.
     :param switch: Pool killswitch event.
@@ -44,17 +39,11 @@ def run_multiprocessed_llm(switch: MPEvent, llm_configuraiton: dict, input_queue
             Dictionary containing "model_path" and "model_config".
     :param input_queue: Input queue.
     :param output_queue: Output queue.
-    :param timeout: Timeout for getting.
     """
     try:
         llm = spawn_language_model_instance(**llm_configuraiton)
         while not switch.wait(0.5):
-            # TODO: Solve without nested try-except block
-            try:
-                response = llm.generate(input_queue.get(timeout=timeout))
-            except Empty:
-                response = None
-            output_queue.put(response)
+            output_queue.put(llm.generate(input_queue.get()))
     except:
         sys.exit(1)
     sys.exit(0)
@@ -204,7 +193,6 @@ class ThreadedLLMPool(LLMPool):
                 self.workers[target_worker]["config"],
                 self.workers[target_worker]["input"],
                 self.workers[target_worker]["output"],
-                self.generation_timeout,
             )
         )
         self.workers[target_worker]["worker"].daemon = True
@@ -227,7 +215,10 @@ class ThreadedLLMPool(LLMPool):
         :return: Response.
         """
         self.workers[target_worker]["input"].put(prompt)
-        return self.workers[target_worker]["output"].get()
+        try:
+            return self.workers[target_worker]["output"].get(timeout=self.generation_timeout)
+        except Empty:
+            return None
 
 
 class MulitprocessingLLMPool(LLMPool):
@@ -250,7 +241,6 @@ class MulitprocessingLLMPool(LLMPool):
                 self.workers[target_worker]["config"],
                 self.workers[target_worker]["input"],
                 self.workers[target_worker]["output"],
-                self.generation_timeout,
             )
         )
         self.workers[target_worker]["worker"].start()
@@ -274,5 +264,7 @@ class MulitprocessingLLMPool(LLMPool):
         :param prompt: Prompt to send.
         :return: Response.
         """
-        self.workers[target_worker]["input"].put(prompt)
-        return self.workers[target_worker]["output"].get()
+        try:
+            return self.workers[target_worker]["output"].get(timeout=self.generation_timeout)
+        except Empty:
+            return None
