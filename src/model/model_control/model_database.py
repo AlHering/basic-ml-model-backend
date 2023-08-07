@@ -5,6 +5,7 @@
 *            (c) 2023 Alexander Hering             *
 ****************************************************
 """
+from typing import Any, Optional, List
 from src.utility.bronze import sqlalchemy_utility
 from sqlalchemy.ext.automap import automap_base
 from src.model.model_control.data_model import populate_data_instrastructure
@@ -54,3 +55,82 @@ class ModelDatabase(object):
             self._logger.info(f"self.model after addition: {self.model}")
         self._logger.info("Creating new structures")
         self.base.metadata.create_all(bind=self.engine)
+
+    """
+    Default object interaction.
+    """
+
+    def get_objects(self, object_type: str) -> List[Any]:
+        """
+        Method for acquiring objects.
+        :param object_type: Target object type.
+        :return: List of objects of given type.
+        """
+        return self.session_factory().query(self.model[object_type]).all()
+
+    def get_object(self, object_type: str, object_id: Any) -> Optional[Any]:
+        """
+        Method for acquiring objects.
+        :param object_type: Target object type.
+        :param object_id: Target ID.
+        :return: An object of given type and ID, if found.
+        """
+        return self.session_factory().query(self.model[object_type]).filter(
+            getattr(self.model[object_type],
+                    self.primary_keys[object_type]) == object_id
+        ).first()
+
+    def post_object(self, object_type: str, **object_attributes: Optional[Any]) -> Optional[Any]:
+        """
+        Method for adding an object.
+        :param object_type: Target object type.
+        :param object_attributes: Object attributes.
+        :return: Object ID of added object, if adding was successful.
+        """
+        obj = self.model[object_type](**object_attributes)
+        with self.session_factory() as session:
+            session.add(obj)
+            session.commit()
+            session.refresh(obj)
+        return getattr(obj, self.primary_keys[object_type])
+
+    def patch_object(self, object_type: str, object_id: Any, **object_attributes: Optional[Any]) -> Optional[Any]:
+        """
+        Method for patching an object.
+        :param object_type: Target object type.
+        :param object_id: Target ID.
+        :param object_attributes: Object attributes.
+        :return: Object ID of patched object, if patching was successful.
+        """
+        result = None
+        with self.session_factory() as session:
+            obj = session.query(self.model[object_type]).filter(
+                getattr(self.model[object_type],
+                        self.primary_keys[object_type]) == object_id
+            ).first()
+            if obj:
+                for attribute in object_attributes:
+                    setattr(obj, attribute, object_attributes[attribute])
+                session.commit()
+                result = getattr(obj, self.primary_keys[object_type])
+        return result
+
+    def delete_object(self, object_type: str, object_id: Any) -> Optional[Any]:
+        """
+        Method for deleting an object.
+        :param object_type: Target object type.
+        :param object_id: Target ID.
+        :param object_attributes: Object attributes.
+        :return: Object ID of patched object, if deletion was successful.
+        """
+        result = None
+        with self.session_factory() as session:
+            obj = session.query(self.model[object_type]).filter(
+                getattr(self.model[object_type],
+                        self.primary_keys[object_type]) == object_id
+            ).first()
+            if obj:
+                session.delete(obj)
+                session.commit()
+                result = getattr(obj, self.primary_keys[object_type])
+        return result
