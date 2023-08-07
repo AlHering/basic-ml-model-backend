@@ -14,23 +14,26 @@ from src.configuration import configuration as cfg
 from src.model.backend_control import llm_pool as test_llm_pool
 
 
-def test_spawner(config: str) -> Optional[Any]:
+def test_spawner(model_path: str, model_config: dict) -> Optional[Any]:
     """
-    Function for spawning language model test instance based on configuration.
-    :param config: Instance configuration.
-    :return: Test language model instance.
+    Function for spawning test language model instance based on configuration.
+        :param model_path: Relative model path.
+        :param model_config: Model configuration.
+    :return: Language model instance if configuration was successful else None.
     """
     class TestLM(object):
         """
         Test language model class.
         """
 
-        def __init__(self, representation: dict) -> None:
+        def __init__(self, model_path: str, model_config: dict) -> None:
             """
             Initiation method.
-            :param representation: Test dictionary for translating prompt to generation reponse.
+            :param model_path: Relative model path.
+            :param model_config: Model configuration, in this case translation dictionary for prompting.
             """
-            self.representation = representation
+            self.model_path = model_path
+            self.model_config = model_config
 
         def generate(self, prompt: str) -> Optional[Any]:
             """
@@ -38,9 +41,9 @@ def test_spawner(config: str) -> Optional[Any]:
             :param prompt: User prompt.
             :return: Response, if generation method is available else None.
             """
-            return self.representation([prompt])
+            return self.model_config([prompt])
 
-    return TestLM(config)
+    return TestLM(model_path, model_config)
 
 
 class ThreadedLLMPoolTest(unittest.TestCase):
@@ -52,7 +55,7 @@ class ThreadedLLMPoolTest(unittest.TestCase):
         """
         Method for testing llm preparation.
         """
-        worker_uuid = self.llm_pool.prepare_llm(self.test_config_a)
+        worker_uuid = self.llm_pool.prepare_llm(self.llm_test_config_a)
         self.assertTrue(worker_uuid in self.llm_pool.workers)
         self.assertTrue(
             all(key in self.llm_pool.workers[worker_uuid] for key in ["config", "running"]))
@@ -93,7 +96,7 @@ class ThreadedLLMPoolTest(unittest.TestCase):
         """
         self.assertEqual(len(list(self.llm_pool.workers.keys())), 1)
         worker_uuid_a = list(self.llm_pool.workers.keys())[0]
-        worker_uuid_b = self.llm_pool.prepare_llm(self.test_config_b)
+        worker_uuid_b = self.llm_pool.prepare_llm(self.llm_test_config_b)
         self.assertEqual(len(list(self.llm_pool.workers.keys())), 2)
 
         self.llm_pool.start(worker_uuid_a)
@@ -117,7 +120,7 @@ class ThreadedLLMPoolTest(unittest.TestCase):
         self.llm_pool.stop(worker_uuid_b)
         self.assertFalse(self.llm_pool.is_running(worker_uuid_b))
 
-        worker_uuid_c = self.llm_pool.prepare_llm(self.test_config_c)
+        worker_uuid_c = self.llm_pool.prepare_llm(self.llm_test_config_c)
         self.assertEqual(len(list(self.llm_pool.workers.keys())), 3)
         self.assertFalse(self.llm_pool.is_running(worker_uuid_c))
         self.llm_pool.start(worker_uuid_c)
@@ -130,8 +133,7 @@ class ThreadedLLMPoolTest(unittest.TestCase):
             worker_uuid_a, "prompt_b"), "response_b")
 
         self.llm_pool.reset_llm(
-            worker_uuid_b, {"new_prompt_c": "new_response_c",
-                            "new_prompt_d": "new_response_d"})
+            worker_uuid_b, self.llm_reset_config_b)
         self.llm_pool.start(worker_uuid_b)
         self.assertTrue(self.llm_pool.is_running(worker_uuid_b))
 
@@ -157,17 +159,33 @@ class ThreadedLLMPoolTest(unittest.TestCase):
         """
         test_llm_pool.spawn_language_model_instance = test_spawner
         cls.llm_pool = test_llm_pool.ThreadedLLMPool()
-        cls.test_config_a = {
-            "prompt_a": "response_a",
-            "prompt_b": "response_b"
+        cls.llm_test_config_a = {
+            "model_path": "my_test_model_path",
+            "model_config": {
+                "prompt_a": "response_a",
+                "prompt_b": "response_b"
+            }
         }
-        cls.test_config_b = {
-            "prompt_c": "response_c",
-            "prompt_d": "response_d"
+        cls.llm_test_config_b = {
+            "model_path": "my_test_model_path",
+            "model_config": {
+                "prompt_c": "response_c",
+                "prompt_d": "response_d"
+            }
         }
-        cls.test_config_c = {
-            "prompt_e": "response_e",
-            "prompt_f": "response_f"
+        cls.llm_reset_config_b = {
+            "model_path": "my_new_test_model_path",
+            "model_config": {
+                "new_prompt_c": "new_response_c",
+                "new_prompt_d": "new_response_d"
+            }
+        }
+        cls.llm_test_config_c = {
+            "model_path": "my_test_model_path",
+            "model_config": {
+                "prompt_e": "response_e",
+                "prompt_f": "response_f"
+            }
         }
 
     @classmethod
@@ -176,9 +194,9 @@ class ThreadedLLMPoolTest(unittest.TestCase):
         Class method for setting tearing down test case.
         """
         del cls.llm_pool
-        del cls.test_config_a
-        del cls.test_config_b
-        del cls.test_config_c
+        del cls.llm_test_config_a
+        del cls.llm_test_config_b
+        del cls.llm_test_config_c
         gc.collect()
 
     @classmethod
@@ -205,7 +223,7 @@ class MultiprocessingLLMPoolTest(unittest.TestCase):
         """
         Method for testing llm preparation.
         """
-        worker_uuid = self.llm_pool.prepare_llm(self.test_config_a)
+        worker_uuid = self.llm_pool.prepare_llm(self.llm_test_config_a)
         self.assertTrue(worker_uuid in self.llm_pool.workers)
         self.assertTrue(
             all(key in self.llm_pool.workers[worker_uuid] for key in ["config", "running"]))
@@ -246,7 +264,7 @@ class MultiprocessingLLMPoolTest(unittest.TestCase):
         """
         self.assertEqual(len(list(self.llm_pool.workers.keys())), 1)
         worker_uuid_a = list(self.llm_pool.workers.keys())[0]
-        worker_uuid_b = self.llm_pool.prepare_llm(self.test_config_b)
+        worker_uuid_b = self.llm_pool.prepare_llm(self.llm_test_config_b)
         self.assertEqual(len(list(self.llm_pool.workers.keys())), 2)
 
         self.llm_pool.start(worker_uuid_a)
@@ -270,7 +288,7 @@ class MultiprocessingLLMPoolTest(unittest.TestCase):
         self.llm_pool.stop(worker_uuid_b)
         self.assertFalse(self.llm_pool.is_running(worker_uuid_b))
 
-        worker_uuid_c = self.llm_pool.prepare_llm(self.test_config_c)
+        worker_uuid_c = self.llm_pool.prepare_llm(self.llm_test_config_c)
         self.assertEqual(len(list(self.llm_pool.workers.keys())), 3)
         self.assertFalse(self.llm_pool.is_running(worker_uuid_c))
         self.llm_pool.start(worker_uuid_c)
@@ -310,15 +328,15 @@ class MultiprocessingLLMPoolTest(unittest.TestCase):
         """
         test_llm_pool.spawn_language_model_instance = test_spawner
         cls.llm_pool = test_llm_pool.MulitprocessingLLMPool()
-        cls.test_config_a = {
+        cls.llm_test_config_a = {
             "prompt_a": "response_a",
             "prompt_b": "response_b"
         }
-        cls.test_config_b = {
+        cls.llm_test_config_b = {
             "prompt_c": "response_c",
             "prompt_d": "response_d"
         }
-        cls.test_config_c = {
+        cls.llm_test_config_c = {
             "prompt_e": "response_e",
             "prompt_f": "response_f"
         }
@@ -329,9 +347,9 @@ class MultiprocessingLLMPoolTest(unittest.TestCase):
         Class method for setting tearing down test case.
         """
         del cls.llm_pool
-        del cls.test_config_a
-        del cls.test_config_b
-        del cls.test_config_c
+        del cls.llm_test_config_a
+        del cls.llm_test_config_b
+        del cls.llm_test_config_c
         gc.collect()
 
     @classmethod
