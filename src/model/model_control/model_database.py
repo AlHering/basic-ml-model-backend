@@ -41,7 +41,6 @@ class ModelDatabase(object):
         self._logger.info(f"Tables: {self.base.metadata.tables.keys()}")
 
         self.model = {}
-
         self.schema = schema
         if self.schema and not self.schema.endswith("."):
             self.schema += "."
