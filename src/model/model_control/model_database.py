@@ -25,7 +25,7 @@ class ModelDatabase(object):
         :param schema: Schema to use.
             Defaults to empty string in which case no schema is used.
         :param verbose: Verbose flag for interaction methods.
-            Defaults to False since archiver is already logging.
+            Defaults to False since controllers should already be logging.
         """
         self._logger = cfg.LOGGER
         self.verbose = verbose
