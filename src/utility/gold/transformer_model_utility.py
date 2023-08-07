@@ -45,16 +45,17 @@ class LlamaCppLM(LanguageModel):
     General LM class for LlamaCpp.
     """
 
-    def __init__(self, representation: dict) -> None:
+    def __init__(self, model_path: str, model_config: dict) -> None:
         """
         Initiation method.
+        :param model_path: Relative model path.
+        :param model_config: Model configuration.
         :param representation: Language model representation.
         """
         self.llm = LlamaCpp(
             model_path=os.path.join(
-                cfg.PATHS.TEXTGENERATION_MODEL_PATH, representation["path"]),
-            n_ctx=representation["context"],
-            verbose=representation["verbose"]
+                cfg.PATHS.TEXTGENERATION_MODEL_PATH, model_path, model_config["model_version"]),
+            **model_config.get("loader_kwargs", {})
         )
 
     def generate(self, prompt: str) -> Optional[Any]:
@@ -71,17 +72,22 @@ class LocalHFLM(LanguageModel):
     General LM class for local Huggingface models.
     """
 
-    def __init__(self, representation: dict) -> None:
+    def __init__(self, model_path: str, model_config: dict) -> None:
         """
         Initiation method.
-        :param representation: Language model representation.
+        :param model_path: Relative model path.
+        :param model_config: Model configuration.
         """
         self.tokenizer = AutoTokenizer.from_pretrained(
-            pretrained_model_name_or_path=representation["path"],
-            local_files_only=True)
+            pretrained_model_name_or_path=model_path,
+            local_files_only=True,
+            **model_config.get("loader_kwargs", {}).get("tokenizer", {})
+        )
         self.model = AutoModel.from_pretrained(
-            pretrained_model_name_or_path=representation["path"],
-            local_files_only=True)
+            pretrained_model_name_or_path=model_path,
+            local_files_only=True,
+            **model_config.get("loader_kwargs", {}).get("model", {})
+        )
 
     def generate(self, prompt: str) -> Optional[Any]:
         """
@@ -93,22 +99,10 @@ class LocalHFLM(LanguageModel):
         return self.model(**inputs)
 
 
-class LocalHFEmbeddingLM(LanguageModel):
+class LocalHFEmbeddingLM(LocalHFLM):
     """
     General LM class for local Huggingface models for embedding.
     """
-
-    def __init__(self, representation: dict) -> None:
-        """
-        Initiation method.
-        :param representation: Language model representation.
-        """
-        self.tokenizer = AutoTokenizer.from_pretrained(
-            pretrained_model_name_or_path=representation["path"],
-            local_files_only=True)
-        self.model = AutoModel.from_pretrained(
-            pretrained_model_name_or_path=representation["path"],
-            local_files_only=True)
 
     def generate(self, prompt: str) -> List[float]:
         """
@@ -234,16 +228,17 @@ SUPPORTED_TYPES = {
 }
 
 
-def spawn_language_model_instance(config: str) -> Optional[LanguageModel]:
+def spawn_language_model_instance(model_path: str, model_config: dict) -> Optional[LanguageModel]:
     """
     Function for spawning language model instance based on configuration.
-    :param config: Instance configuration.
+        :param model_path: Relative model path.
+        :param model_config: Model configuration.
     :return: Language model instance if configuration was successful else None.
     """
-    lm = SUPPORTED_TYPES.get(config.get("type"), {}).get(
-        "loaders", {}).get(config.get("loader", "_default"))
+    lm = SUPPORTED_TYPES.get(model_config.get("type"), {}).get(
+        "loaders", {}).get(model_config.get("loader", "_default"))
     if lm is not None:
-        lm = lm(config)
+        lm = lm(model_path, model_config)
     return lm
 
 
