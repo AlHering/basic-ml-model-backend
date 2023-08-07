@@ -172,7 +172,7 @@ class BackendController(object):
                         self.primary_keys[object_type]) == object_id
             ).first()
             if obj:
-                obj.delete()
+                session.delete(obj)
                 session.commit()
                 result = getattr(obj, self.primary_keys[object_type])
         return result
