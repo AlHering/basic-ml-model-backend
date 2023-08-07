@@ -7,7 +7,7 @@
 """
 from typing import List, Any
 from src.model.model_control.model_handlers import StabeDiffusionModelHandler
-from src.interfaces.model_database import ModelDatabase
+from src.model.model_control.model_database import ModelDatabase
 
 
 class ModelController(object):
