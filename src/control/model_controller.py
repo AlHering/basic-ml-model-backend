@@ -13,7 +13,7 @@ from src.model.model_control.model_database import ModelDatabase
 class ModelController(object):
     """
     Class, representing ML Model Controller objects.
-    A Model Controller manages Model Handlers, which use API Wrappers to
+    A Model Controller manages Model Handlers, which use API Wrappers to provide
     model services for collecting metadata and downloading assets.
     """
 
