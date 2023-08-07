@@ -9,6 +9,7 @@ import unittest
 import gc
 import os
 import shutil
+from time import sleep
 from src.control.backend_controller import BackendController, UUID
 from src.model.backend_control.llm_pool import LLMPool
 from src.configuration import configuration as cfg
@@ -60,6 +61,40 @@ class BackendControllerTest(unittest.TestCase):
         self.assertEqual(len(self.controller.get_objects("model")), 0)
         self.assertEqual(len(self.controller.get_objects("instance")), 0)
 
+    def test_03_llm_loading(self):
+        """
+        Method for testing LLM loading.
+        """
+        self.example_model_data["loader"] = "_default"
+        model_id = self.controller.post_object(
+            "model", **self.example_model_data)
+        self.example_instance_data["model_id"] = model_id
+        instance_uuid = str(self.controller.post_object(
+            "instance", **self.example_instance_data))
+        self.assertTrue(len(self.controller.get_objects("model")) > 0)
+        self.assertTrue(len(self.controller.get_objects("instance")) > 0)
+
+        self.controller.load_instance(str(instance_uuid))
+        response = self.controller.forward_generate(
+            instance_uuid, "You are an assistant. Give me a list of fruit trees.")
+        print(response)
+        self.assertTrue(all(hasattr(response, attribute)
+                        for attribute in ["generations", "llm_output", "run"]))
+        generation_batches = response.generations
+        self.assertTrue(isinstance(generation_batches, list))
+        self.assertTrue(len(generation_batches) > 0)
+        self.assertTrue(isinstance(generation_batches[0], list))
+        self.assertTrue(len(generation_batches[0]) > 0)
+        self.assertTrue(isinstance(generation_batches[0][0].text, str))
+
+        self.controller.unload_instance(instance_uuid)
+        self.assertFalse(self.controller.llm_pool.is_running(instance_uuid))
+
+        self.controller.delete_object("model", model_id)
+        self.controller.delete_object("instance", UUID(instance_uuid))
+        self.assertEqual(len(self.controller.get_objects("model")), 0)
+        self.assertEqual(len(self.controller.get_objects("instance")), 0)
+
     @classmethod
     def setUpClass(cls):
         """
@@ -75,7 +110,9 @@ class BackendControllerTest(unittest.TestCase):
         cls.example_instance_data = {"config": {
             "path": "TheBloke_vicuna-7B-v1.3-GGML/vicuna-7b-v1.3.ggmlv3.q4_0.bin",
             "type": "llamacpp",
-            "loader": "_default"},
+            "loader": "_default",
+            "context": 2000,
+            "verbose": True},
             "model_id": 1}
 
     @classmethod
