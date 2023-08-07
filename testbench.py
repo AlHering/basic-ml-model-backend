@@ -8,13 +8,34 @@
 from src.utility.gold.transformer_model_utility import spawn_language_model_instance
 
 
-llm = spawn_language_model_instance({
+vicuna_7b_config = {
     "path": "TheBloke_vicuna-7B-v1.3-GGML/vicuna-7b-v1.3.ggmlv3.q4_0.bin",
-            "type": "llamacpp",
-            "loader": "_default",
-            "context": 2000,
-            "verbose": True}
-)
+    "type": "llamacpp",
+    "loader": "_default",
+    "context": 2048,
+    "verbose": True
+}
+
+
+orca_3b_config = {
+    "path": "TheBloke_orca_mini_3B-GGML/orca-mini-3b.ggmlv3.q5_0.bin",
+    "type": "llamacpp",
+    "loader": "_default",
+    "context": 2048,
+    "verbose": True
+}
+
+
+orca_7b_config = {
+    "path": "TheBloke_orca_mini_7B-GGML/orca-mini-7b.ggmlv3.q5_0.bin",
+    "type": "llamacpp",
+    "loader": "_default",
+    "context": 2048,
+    "verbose": True
+}
+
+
+llm = spawn_language_model_instance(orca_7b_config)
 
 response = llm.generate("You are an assistant. Give me a list of fruit trees.")
 generation_batches = response.generations
