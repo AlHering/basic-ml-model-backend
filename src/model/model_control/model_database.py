@@ -31,7 +31,7 @@ class ModelDatabase(object):
         self._logger.info("Automapping existing structures")
         self.base = automap_base()
         self.engine = sqlalchemy_utility.get_engine(
-            cfg.ENV["WEBSITE_ARCHIVER_DB"] if database_uri is None else database_uri)
+            cfg.ENV["MODEL_DB"] if database_uri is None else database_uri)
         self.base.prepare(autoload_with=self.engine, reflect=True)
         self.session_factory = sqlalchemy_utility.get_session_factory(
             self.engine)
