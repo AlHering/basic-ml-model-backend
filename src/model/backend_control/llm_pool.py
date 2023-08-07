@@ -9,7 +9,7 @@ import sys
 from typing import Optional, Any
 from abc import ABC, abstractmethod
 from uuid import uuid4
-from queue import Queue as TQueue
+from queue import Empty, Queue as TQueue
 from multiprocessing import Process, Queue as MPQueue, Event as mp_get_event
 from multiprocessing.synchronize import Event as MPEvent
 from threading import Thread, Event as TEvent
@@ -17,7 +17,7 @@ from src.utility.gold.transformer_model_utility import spawn_language_model_inst
 from src.utility.bronze import dictionary_utility
 
 
-def run_threaded_llm(switch: TEvent, llm_configuraiton: dict, input_queue: TQueue, output_queue: TQueue) -> None:
+def run_threaded_llm(switch: TEvent, llm_configuraiton: dict, input_queue: TQueue, output_queue: TQueue, timeout: float = None) -> None:
     """
     Function for running LLM instance in threading mode.
     :param switch: Pool killswitch event.
@@ -25,13 +25,18 @@ def run_threaded_llm(switch: TEvent, llm_configuraiton: dict, input_queue: TQueu
             Dictionary containing "model_path" and "model_config".
     :param input_queue: Input queue.
     :param output_queue: Output queue.
+    :param timeout: Timeout for getting.
     """
     llm = spawn_language_model_instance(**llm_configuraiton)
     while not switch.wait(0.5):
-        output_queue.put(llm.generate(input_queue.get()))
+        try:
+            response = llm.generate(input_queue.get(timeout=timeout))
+        except Empty:
+            response = None
+        output_queue.put(response)
 
 
-def run_multiprocessed_llm(switch: MPEvent, llm_configuraiton: dict, input_queue: MPQueue, output_queue: MPQueue) -> None:
+def run_multiprocessed_llm(switch: MPEvent, llm_configuraiton: dict, input_queue: MPQueue, output_queue: MPQueue, timeout: float = None) -> None:
     """
     Function for running LLM instance in multiprocessing mode.
     :param switch: Pool killswitch event.
@@ -39,11 +44,17 @@ def run_multiprocessed_llm(switch: MPEvent, llm_configuraiton: dict, input_queue
             Dictionary containing "model_path" and "model_config".
     :param input_queue: Input queue.
     :param output_queue: Output queue.
+    :param timeout: Timeout for getting.
     """
     try:
         llm = spawn_language_model_instance(**llm_configuraiton)
         while not switch.wait(0.5):
-            output_queue.put(llm.generate(input_queue.get()))
+            # TODO: Solve without nested try-except block
+            try:
+                response = llm.generate(input_queue.get(timeout=timeout))
+            except Empty:
+                response = None
+            output_queue.put(response)
     except:
         sys.exit(1)
     sys.exit(0)
@@ -54,14 +65,18 @@ class LLMPool(ABC):
     Class for handling a pool of LLM instances.
     """
 
-    def __init__(self, queue_spawns: bool = False) -> None:
+    def __init__(self, queue_spawns: bool = False, generation_timeout: float = None) -> None:
         """
         Initiation method.
         :param queue_spawns: Queue up instanciation until resources are available.
             Defaults to False.
+        :param generation_timeout: Timeout for generation tasks.
+            Defaults to None in which case the generation task potentially runs indefinitly.
+            If set, a None value will be returned if the timeout value is passed.
         """
         # TODO: Add prioritization and potentially interrupt concept
         self.queue_spawns = queue_spawns
+        self.generation_timeout = generation_timeout
         self.workers = {}
 
     def stop_all(self) -> None:
@@ -189,6 +204,7 @@ class ThreadedLLMPool(LLMPool):
                 self.workers[target_worker]["config"],
                 self.workers[target_worker]["input"],
                 self.workers[target_worker]["output"],
+                self.generation_timeout,
             )
         )
         self.workers[target_worker]["worker"].daemon = True
@@ -234,6 +250,7 @@ class MulitprocessingLLMPool(LLMPool):
                 self.workers[target_worker]["config"],
                 self.workers[target_worker]["input"],
                 self.workers[target_worker]["output"],
+                self.generation_timeout,
             )
         )
         self.workers[target_worker]["worker"].start()
