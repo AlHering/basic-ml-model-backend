@@ -69,8 +69,19 @@ class BackendController(object):
                 "accessed": 0,
                 "inactive": 0
             }
-            self.llm_pool.prepare_llm(self.get_object(
-                "instance", UUID(instance_uuid)).config, instance_uuid)
+            instance = self.get_object("instance", UUID(instance_uuid))
+            llm_config = {
+                "model_path": instance.model.path,
+                "model_config": {
+                    "type": instance.type,
+                    "loader": instance.loader,
+                    "loader_kwargs": instance.loader_kwargs,
+                    "model_version": instance.model_version,
+                    "gateway": instance.gateway
+                }
+            }
+
+            self.llm_pool.prepare_llm(llm_config, instance_uuid)
             self.llm_pool.start(instance_uuid)
             self._cache[instance_uuid]["started"] = dt.now()
         return instance_uuid
