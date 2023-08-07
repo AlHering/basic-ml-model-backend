@@ -135,14 +135,13 @@ class DataBackendTest(unittest.TestCase):
             f"sqlite:///{TESTING_DB_PATH}")
         cls.example_model_data = {
             "path": "TheBloke_vicuna-7B-v1.3-GGML",
-            "type": "llamacpp",
-            "loader": "_default"
+            "type": "llamacpp"
         }
         cls.example_instance_data = {
             "type": "llamacpp",
             "loader": "_default",
             "model_version": "vicuna-7b-v1.3.ggmlv3.q4_0.bin",
-            "loadier_kwargs": {
+            "loader_kwargs": {
                 "n_ctx": 2048,
                 "verbose": True
             }
@@ -152,7 +151,7 @@ class DataBackendTest(unittest.TestCase):
         cls.model_columns = ["id", "path", "type",
                              "url", "sha256", "versions", "created", "updated"]
         cls.instance_columns = ["uuid", "type", "loader", "loader_kwargs", "model_version",
-                                "gateway" "created", "updated", "model_id"]
+                                "gateway", "created", "updated", "model_id"]
         cls.log_columns = ["id", "request", "response", "started", "finished"]
 
     @classmethod
