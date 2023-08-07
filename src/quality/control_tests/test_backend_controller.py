@@ -61,9 +61,9 @@ class BackendControllerTest(unittest.TestCase):
         self.assertEqual(len(self.controller.get_objects("model")), 0)
         self.assertEqual(len(self.controller.get_objects("instance")), 0)
 
-    def test_03_llm_loading(self):
+    def test_03_llm_handling(self):
         """
-        Method for testing LLM loading.
+        Method for testing LLM handling.
         """
         self.example_model_data["loader"] = "_default"
         model_id = self.controller.post_object(
@@ -121,6 +121,8 @@ class BackendControllerTest(unittest.TestCase):
         Class method for setting tearing down test case.
         """
         del cls.controller
+        del cls.example_model_data
+        del cls.example_instance_data
         if os.path.exists(TESTING_PATH):
             shutil.rmtree(TESTING_PATH, ignore_errors=True)
         gc.collect()
