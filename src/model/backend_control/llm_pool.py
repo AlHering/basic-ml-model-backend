@@ -264,6 +264,7 @@ class MulitprocessingLLMPool(LLMPool):
         :param prompt: Prompt to send.
         :return: Response.
         """
+        self.workers[target_worker]["input"].put(prompt)
         try:
             return self.workers[target_worker]["output"].get(timeout=self.generation_timeout)
         except Empty:
