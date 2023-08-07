@@ -74,24 +74,22 @@ class DataBackendTest(unittest.TestCase):
         Method for testing model representation.
         """
         model = self.data_infrastructure["model"]["model"](
-            path="my_path",
-            type="my_type",
-            loader="my_loader"
+            **self.example_model_data
         )
-        self.assertTrue(all(hasattr(model, attribute) for attribute in [
-            "id", "path", "type", "loader", "created", "updated"]))
+        self.assertTrue(all(hasattr(model, attribute)
+                        for attribute in self.model_columns))
 
         instance = self.data_infrastructure["model"]["instance"](
-            config={"my_key": "my_value"}
+            **self.example_instance_data
         )
-        self.assertTrue(all(hasattr(instance, attribute) for attribute in [
-            "uuid", "config", "model_id", "created", "updated"]))
+        self.assertTrue(all(hasattr(instance, attribute)
+                        for attribute in self.instance_columns))
 
         log = self.data_infrastructure["model"]["log"](
-            request={"my_request_key": "my_request_value"}
+            **self.example_log_data
         )
-        self.assertTrue(all(hasattr(log, attribute) for attribute in [
-            "id", "request", "response", "started", "finished"]))
+        self.assertTrue(all(hasattr(log, attribute)
+                        for attribute in self.log_columns))
 
         model_id = None
         with self.data_infrastructure["session_factory"]() as session:
@@ -135,6 +133,21 @@ class DataBackendTest(unittest.TestCase):
             os.makedirs(cfg.PATHS.TEST_PATH)
         cls.data_infrastructure = create_or_load_database(
             f"sqlite:///{TESTING_DB_PATH}")
+        cls.example_model_data = {
+            "path": "my_path",
+            "type": "my_type",
+            "loader": "my_loader"
+        }
+        cls.example_instance_data = {
+
+        }
+        cls.example_log_data = {"request":
+                                {"my_request_key": "my_request_value"}}
+        cls.model_columns = ["id", "path", "type",
+                             "loader", "created", "updated"]
+        cls.instance_columns = ["uuid", "config",
+                                "model_id", "created", "updated"]
+        cls.log_columns = ["id", "request", "response", "started", "finished"]
 
     @classmethod
     def tearDownClass(cls):
@@ -142,6 +155,12 @@ class DataBackendTest(unittest.TestCase):
         Class method for setting tearing down test case.
         """
         del cls.data_infrastructure
+        del cls.example_model_data
+        del cls.example_instance_data
+        del cls.example_log_data
+        del cls.model_columns
+        del cls.instance_columns
+        del cls.log_columns
         if os.path.exists(cfg.PATHS.TEST_PATH):
             shutil.rmtree(cfg.PATHS.TEST_PATH, ignore_errors=True)
         gc.collect()
