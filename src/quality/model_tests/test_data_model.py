@@ -31,11 +31,11 @@ class DataBackendTest(unittest.TestCase):
         self.assertTrue(all(key in self.data_infrastructure for key in [
                         "base", "engine", "model", "session_factory"]))
         self.assertEqual(len(
-            [c for c in self.data_infrastructure["base"].metadata.tables["model"].columns]), 6)
+            [c for c in self.data_infrastructure["base"].metadata.tables["model"].columns]), len(self.model_columns))
         self.assertEqual(len(
-            [c for c in self.data_infrastructure["base"].metadata.tables["instance"].columns]), 5)
+            [c for c in self.data_infrastructure["base"].metadata.tables["instance"].columns]), len(self.instance_columns))
         self.assertEqual(len(
-            [c for c in self.data_infrastructure["base"].metadata.tables["log"].columns]), 5)
+            [c for c in self.data_infrastructure["base"].metadata.tables["log"].columns]), len(self.log_columns))
 
     def test_02_key_constraints(self) -> None:
         """
@@ -134,19 +134,25 @@ class DataBackendTest(unittest.TestCase):
         cls.data_infrastructure = create_or_load_database(
             f"sqlite:///{TESTING_DB_PATH}")
         cls.example_model_data = {
-            "path": "my_path",
-            "type": "my_type",
-            "loader": "my_loader"
+            "path": "TheBloke_vicuna-7B-v1.3-GGML",
+            "type": "llamacpp",
+            "loader": "_default"
         }
         cls.example_instance_data = {
-
+            "type": "llamacpp",
+            "loader": "_default",
+            "model_version": "vicuna-7b-v1.3.ggmlv3.q4_0.bin",
+            "loadier_kwargs": {
+                "n_ctx": 2048,
+                "verbose": True
+            }
         }
         cls.example_log_data = {"request":
                                 {"my_request_key": "my_request_value"}}
         cls.model_columns = ["id", "path", "type",
-                             "loader", "created", "updated"]
-        cls.instance_columns = ["uuid", "config",
-                                "model_id", "created", "updated"]
+                             "url", "sha256", "versions", "created", "updated"]
+        cls.instance_columns = ["uuid", "type", "loader", "loader_kwargs", "model_version",
+                                "gateway" "created", "updated", "model_id"]
         cls.log_columns = ["id", "request", "response", "started", "finished"]
 
     @classmethod
