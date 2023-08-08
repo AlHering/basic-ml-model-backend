@@ -5,21 +5,21 @@
 *            (c) 2023 Alexander Hering             *
 ****************************************************
 """
-from sqlalchemy.orm import relationship, mapped_column
+from sqlalchemy.orm import relationship, mapped_column, declarative_base
 from sqlalchemy import Engine, Column, String, JSON, ForeignKey, Integer, DateTime, func, Uuid, Text, event, Boolean
 from uuid import uuid4
 from typing import Any
 
 
-def populate_data_instrastructure(base: Any, engine: Engine, schema: str, model: dict) -> None:
+def populate_data_instrastructure(engine: Engine, schema: str, model: dict) -> None:
     """
     Function for populating data infrastructure.
-    :param base: Mapper base.
     :param engine: Database engine.
     :param schema: Schema for tables.
     :param model: Model dictionary for holding data classes.
     """
     schema = str(schema)
+    base = declarative_base()
 
     class Model(base):
         """
@@ -181,7 +181,6 @@ def populate_data_instrastructure(base: Any, engine: Engine, schema: str, model:
         model[dataclass.__tablename__.replace(schema, "")] = dataclass
 
     base.metadata.create_all(bind=engine)
-    base.prepare(autoload_with=engine)
 
     @event.listens_for(Modelinstance, "before_insert")
     def generate_uuid(mapper: Any, connect: Any, target: Any) -> None:
