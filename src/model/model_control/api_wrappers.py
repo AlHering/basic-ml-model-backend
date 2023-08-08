@@ -32,11 +32,10 @@ class AbstractAPIWrapper(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def get_model_page(self, identifier: str, model_id: Any, *args: Optional[List], **kwargs: Optional[dict]) -> str:
+    def get_model_page(self, model_object: Any, *args: Optional[List], **kwargs: Optional[dict]) -> str:
         """
         Abstract method for acquring model page for model.
-        :param identifier: Type of identification.
-        :model_id: Identification of specified type.
+        :param model_object: Model object.
         :param args: Arbitrary arguments.
         :param kwargs: Arbitrary keyword arguments.
         :return: Model page for given model ID.
@@ -44,11 +43,10 @@ class AbstractAPIWrapper(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def get_api_url(self, identifier: str, model_id: Any, *args: Optional[List], **kwargs: Optional[dict]) -> str:
+    def get_api_url(self, modelversion_object: Any, *args: Optional[List], **kwargs: Optional[dict]) -> str:
         """
         Abstract method for acquring API URL for model version.
-        :param identifier: Type of identification.
-        :model_id: Identification of specified type.
+        :param modelversion_object: Model version object.
         :param args: Arbitrary arguments.
         :param kwargs: Arbitrary keyword arguments.
         :return: API URL for given model version ID.
