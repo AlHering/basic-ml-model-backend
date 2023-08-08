@@ -5,8 +5,10 @@
 *            (c) 2023 Alexander Hering             *
 ****************************************************
 """
+import os
 import requests
 import json
+import copy
 from time import sleep
 from urllib.parse import urlparse
 import shutil
@@ -22,101 +24,98 @@ class AbstractAPIWrapper(abc.ABC):
     Such wrappers are used for connecting to model services.
     """
 
-    def check_connection(self, *args: Optional[List], **kwargs: Optional[dict]) -> bool:
+    def check_connection(self, **kwargs: Optional[dict]) -> bool:
         """
         Abstract method for checking connection.
-        :param args: Arbitrary arguments.
         :param kwargs: Arbitrary keyword arguments.
         :return: True if connection was established successfuly else False.
         """
         pass
 
     @abc.abstractmethod
-    def validate_url_responsiblity(self, url: str, *args: Optional[List], **kwargs: Optional[dict]) -> bool:
+    def validate_url_responsiblity(self, url: str, **kwargs: Optional[dict]) -> bool:
         """
         Abstract method for validating the responsiblity for a URL.
         :param url: Target URL.
-        :param args: Arbitrary arguments.
         :param kwargs: Arbitrary keyword arguments.
         :return: True, if wrapper is responsible for URL else False.
         """
         pass
 
     @abc.abstractmethod
-    def scrape_available_targets(self, target_type: str, *args: Optional[List], **kwargs: Optional[dict]) -> List[dict]:
+    def scrape_available_targets(self, target_type: str, **kwargs: Optional[dict]) -> List[dict]:
         """
         Abstract method for acquring available targets.
         :param target_type: Type of target object.
-        :param args: Arbitrary arguments.
         :param kwargs: Arbitrary keyword arguments.
         :return: List of entries of given target type.
         """
         pass
 
     @abc.abstractmethod
-    def get_api_url(self, target_type: str, target_object: Any, *args: Optional[List], **kwargs: Optional[dict]) -> str:
+    def get_api_url(self, target_type: str, target_object: Any, **kwargs: Optional[dict]) -> str:
         """
         Abstract method for acquring API URL for a given object.
         :param target_type: Type of target object.
         :param target_object: Target object.
-        :param args: Arbitrary arguments.
         :param kwargs: Arbitrary keyword arguments.
         :return: API URL for given object.
         """
         pass
 
     @abc.abstractmethod
-    def collect_metadata(self, target_type: str, target_object: Any, *args: Optional[List], **kwargs: Optional[dict]) -> dict:
+    def collect_metadata(self, target_type: str, target_object: Any, **kwargs: Optional[dict]) -> dict:
         """
         Abstract method for acquring model data by target type and object.
         :param target_type: Type of target object.
         :param target_object: Target object.
-        :param args: Arbitrary arguments.
         :param kwargs: Arbitrary keyword arguments.
         :return: Metadata for given model ID.
         """
         pass
 
     @abc.abstractmethod
-    def normalize_metadata(self, target_type: str, target_object: Any, metadata: dict, *args: Optional[List], **kwargs: Optional[dict]) -> dict:
+    def normalize_metadata(self, target_type: str, target_object: Any, metadata: dict, **kwargs: Optional[dict]) -> dict:
         """
         Abstract method for normalizing metadata.
         :param target_type: Type of target object.
         :param target_object: Target object.
         :param metadata: Metadata.
-        :param args: Arbitrary arguments.
         :param kwargs: Arbitrary keyword arguments.
         :return: Normalized metadata.
         """
         pass
 
     @abc.abstractmethod
-    def download_model(self, model: Any, *args: Optional[List], **kwargs: Optional[dict]) -> None:
+    def download_model(self, model: Any, path: str, **kwargs: Optional[dict]) -> None:
         """
         Abstract method for downloading a model.
         :param model: Model object.
-        :param args: Arbitrary arguments.
+        :param path: Path to download assets to.
         :param kwargs: Arbitrary keyword arguments.
         """
         pass
 
     @abc.abstractmethod
-    def download_modelversion(self, modelversion: Any, *args: Optional[List], **kwargs: Optional[dict]) -> None:
+    def download_modelversion(self, modelversion: Any, path: str, **kwargs: Optional[dict]) -> None:
         """
         Abstract method for downloading a model.
         :param modelversion: Model version object.
-        :param args: Arbitrary arguments.
+        :param path: Path to download assets to.
         :param kwargs: Arbitrary keyword arguments.
         """
         pass
 
     @abc.abstractmethod
-    def download_asset(self, target_object: Any, *args: Optional[List], **kwargs: Optional[dict]) -> None:
+    def download_assets(self, target_type: str, target_object: Any, asset_type: str, path: str, **kwargs: Optional[dict]) -> List[dict]:
         """
-        Abstract method for downloading an asset.
-        :param target_object: Target object to download assets for.
-        :param args: Arbitrary arguments.
+        Abstract method for downloading assets for a target object.
+        :param target_type: Type of target object.
+        :param target_object: Target object.
+        :param asset_type: Asset type.
+        :param path: Path to download assets to.
         :param kwargs: Arbitrary keyword arguments.
+        :return: Asset data dictionaries.
         """
         pass
 
@@ -133,14 +132,14 @@ class CivitaiAPIWrapper(AbstractAPIWrapper):
         self._logger = cfg.LOGGER
         self.authorization = cfg.ENV["CIVITAI_API_KEY"]
         self.base_url = "https://civitai.com/"
-        self.api_base_url = "https://civitai.com/api/v1/"
-        self.model_by_versionhash_url = "https://civitai.com/api/v1/model-versions/by-hash/"
-        self.model_by_id_url = "https://civitai.com/api/v1/models/"
+        self.api_base_url = f"{self.base_url}api/v1"
+        self.modelversion_by_hash_endpoint = f"{self.api_base_url}/model-versions/by-hash/"
+        self.model_api_endpoint = f"{self.api_base_url}/models/"
+        self.wait = 1.5
 
-    def check_connection(self, *args: Optional[List], **kwargs: Optional[dict]) -> bool:
+    def check_connection(self, **kwargs: Optional[dict]) -> bool:
         """
         Method for checking connection.
-        :param args: Arbitrary arguments.
         :param kwargs: Arbitrary keyword arguments.
         :return: True if connection was established successfuly else False.
         """
@@ -149,225 +148,121 @@ class CivitaiAPIWrapper(AbstractAPIWrapper):
             "Connection could not be established.")
         return result
 
-    def validate_url_responsiblity(self, url: str, *args: Optional[List], **kwargs: Optional[dict]) -> bool:
+    def validate_url_responsiblity(self, url: str, **kwargs: Optional[dict]) -> bool:
         """
         Method for validating the responsiblity for a URL.
         :param url: Target URL.
-        :param args: Arbitrary arguments.
         :param kwargs: Arbitrary keyword arguments.
         :return: True, if wrapper is responsible for URL else False.
         """
         return urlparse(url).netloc in self.base_url
 
-    @abc.abstractmethod
-    def scrape_available_targets(self, target_type: str, *args: Optional[List], **kwargs: Optional[dict]) -> List[dict]:
+    def scrape_available_targets(self, target_type: str, **kwargs: Optional[dict]) -> List[dict]:
         """
         Abstract method for acquring available targets.
         :param target_type: Type of target object.
-        :param args: Arbitrary arguments.
         :param kwargs: Arbitrary keyword arguments.
         :return: List of entries of given target type.
         """
-        pass
+        result = []
+        if target_type == "model":
+            next_url = self.model_api_endpoint
+            while next_url:
+                sleep(self.wait)
+                data = self.safely_fetch_api_data(next_url)
+                if data:
+                    metadata = data["metadata"]
+                    next_url = metadata.get("nextPage")
+                    if next_url:
+                        next_url += "&limit=100"
+                    result.extend(data["items"])
 
-    @abc.abstractmethod
-    def get_api_url(self, target_type: str, target_object: Any, *args: Optional[List], **kwargs: Optional[dict]) -> Optional[str]:
+    def get_api_url(self, target_type: str, target_object: Any, **kwargs: Optional[dict]) -> Optional[str]:
         """
         Abstract method for acquring API URL for a given object.
         :param target_type: Type of target object.
         :param target_object: Target object.
-        :param args: Arbitrary arguments.
         :param kwargs: Arbitrary keyword arguments.
         :return: API URL for given object.
         """
         if target_type == "modelversion":
             return self.model_by_versionhash_url + str(target_object.sha256)
 
-    def collect_metadata(self, target_type: str, target_object: Any, *args: Optional[List], **kwargs: Optional[dict]) -> dict:
+    def collect_metadata(self, target_type: str, target_object: Any, **kwargs: Optional[dict]) -> dict:
         """
         Abstract method for acquring model data by identifier.
         :param target_type: Type of target object.
         :param target_object: Target object.
-        :param args: Arbitrary arguments.
         :param kwargs: Arbitrary keyword arguments.
         :return: Metadata for given model ID.
         """
+        return self.safely_fetch_api_data(target_object.url)
+
+    def safely_fetch_api_data(self, url: str) -> dict:
+        """
+        Method for fetching API data.
+        :param url: Target URL.
+        :return: Fetched data or empty dictionary.
+        """
         self._logger.info(
-            f"Fetching metadata for model with '{target_type}': '{target_object.id}'...")
-        resp = requests.get(target_object.url, headers={
+            f"Fetching data for '{url}'...")
+        resp = requests.get(url, headers={
                             "Authorization": self.authorization})
         try:
-            meta_data = json.loads(resp.content)
-            if meta_data is not None and not "error" in meta_data:
+            data = json.loads(resp.content)
+            if data is not None and not "error" in data:
                 self._logger.info(f"Fetching metadata was successful.")
-                return self.normalize_metadata(target_type, target_object, meta_data)
+                return data
             else:
                 self._logger.warn(f"Fetching metadata failed.")
         except json.JSONDecodeError:
             self._logger.warn(f"Metadata response could not be deserialized.")
             return {}
 
-    @abc.abstractmethod
-    def normalize_metadata(self, metadata: dict, *args: Optional[List], **kwargs: Optional[dict]) -> dict:
+    def normalize_metadata(self, target_type: str, target_object: Any, metadata: dict, **kwargs: Optional[dict]) -> dict:
         """
         Abstract method for normalizing metadata.
+        :param target_type: Type of target object.
+        :param target_object: Target object.
         :param metadata: Metadata.
-        :param args: Arbitrary arguments.
         :param kwargs: Arbitrary keyword arguments.
         :return: Normalized metadata.
         """
-        pass
+        normalized = {}
+        if target_type == "model":
+            pass
+        elif target_type == "modelversion":
+            pass
+        return normalized if normalized else metadata
 
-    @abc.abstractmethod
-    def download_model(self, model: Any, *args: Optional[List], **kwargs: Optional[dict]) -> None:
+    def download_model(self, model: Any, path: str, **kwargs: Optional[dict]) -> None:
         """
         Abstract method for downloading a model.
         :param model: Model object.
-        :param args: Arbitrary arguments.
+        :param path: Absolute path to download model to.
         :param kwargs: Arbitrary keyword arguments.
         """
-        pass
+        if model.path is not None:
+            if not os.path.exists(model.path):
+                os.makedirs()
 
-    @abc.abstractmethod
-    def download_modelversion(self, modelversion: Any, *args: Optional[List], **kwargs: Optional[dict]) -> None:
+    def download_modelversion(self, modelversion: Any, path: str, **kwargs: Optional[dict]) -> None:
         """
         Abstract method for downloading a model.
         :param modelversion: Model version object.
-        :param args: Arbitrary arguments.
+        :param path: Absolute path to download model version to.
         :param kwargs: Arbitrary keyword arguments.
         """
         pass
 
-    @abc.abstractmethod
-    def download_asset(self, target_object: Any, *args: Optional[List], **kwargs: Optional[dict]) -> None:
+    def download_assets(self, target_type: str, target_object: Any, asset_type: str, path: str, **kwargs: Optional[dict]) -> List[dict]:
         """
-        Abstract method for downloading an asset.
-        :param target_object: Target object to download assets for.
-        :param args: Arbitrary arguments.
-        :param kwargs: Arbitrary keyword arguments.
-        """
-        pass
-
-
-class LegacyCivitaiAPIWrapper(AbstractAPIWrapper):
-    """
-    Class, representing civitai API wrapper.
-    """
-
-    def __init__(self) -> None:
-        """
-        Initiation method.
-        """
-        self._logger = cfg.LOGGER
-        self.authorization = cfg.ENV["CIVITAI_API_KEY"]
-        self.base_url = "https://civitai.com/"
-        self.api_base_url = "https://civitai.com/api/v1/"
-        self.model_by_versionhash_url = "https://civitai.com/api/v1/model-versions/by-hash/"
-        self.model_by_id_url = "https://civitai.com/api/v1/models/"
-
-    def check_connection(self, *args: Optional[List], **kwargs: Optional[dict]) -> bool:
-        """
-        Method for checking connection.
-        :param args: Arbitrary arguments.
-        :param kwargs: Arbitrary keyword arguments.
-        :return: True if connection was established successfuly else False.
-        """
-        result = requests.get(self.base_url).status_code == 200
-        self._logger.info("Connection was successfuly established.") if result else self._logger.warn(
-            "Connection could not be established.")
-        return result
-
-    def get_model_page(self, identifier: str, model_id: Any, *args: Optional[List], **kwargs: Optional[dict]) -> str:
-        """
-        Abstract method for acquring model page for model.
-        :param identifier: Type of identification.
-        :model_id: Identification of specified type.
-        :param args: Arbitrary arguments.
-        :param kwargs: Arbitrary keyword arguments.
-        :return: Model page for given model ID.
-        """
-        return {"hash": self.model_by_versionhash_url, "id": self.model_by_id_url}[identifier] + str(model_id)
-
-    def get_api_url(self, identifier: str, model_id: Any, *args: Optional[List], **kwargs: Optional[dict]) -> str:
-        """
-        Abstract method for acquring API URL for model version.
-        :param identifier: Type of identification.
-        :model_id: Identification of specified type.
-        :param args: Arbitrary arguments.
-        :param kwargs: Arbitrary keyword arguments.
-        :return: API URL for given model version ID.
-        """
-        return {"hash": self.model_by_versionhash_url, "id": self.model_by_id_url}[identifier] + str(model_id)
-
-    def collect_metadata(self, identifier: str, model_id: Any, *args: Optional[List], **kwargs: Optional[dict]) -> dict:
-        """
-        Method for acquring model data by identifier.
-        :param identifier: Type of identification.
-        :model_id: Identification of specified type.
-        :param args: Arbitrary arguments.
-        :param kwargs: Arbitrary keyword arguments.
-        :return: Metadata for given model ID.
-        """
-        self._logger.info(
-            f"Fetching metadata for model with '{model_id}' as '{identifier}'...")
-        resp = requests.get(self.get_api_url(identifier, model_id), headers={
-                            "Authorization": self.authorization})
-        try:
-            meta_data = json.loads(resp.content)
-            if meta_data is not None and not "error" in meta_data:
-                self._logger.info(f"Fetching metadata was successful.")
-                return meta_data
-            else:
-                self._logger.warn(f"Fetching metadata failed.")
-        except json.JSONDecodeError:
-            self._logger.warn(f"Metadata response could not be deserialized.")
-            return {}
-
-    def normalize_metadata(self, metadata: dict, **kwargs: Optional[dict]) -> dict:
-        """
-        Method for normalizing metadata.
-        :param metadata: Metadata.
-        :param kwargs: Arbitrary keyword arguments.
-        :return: Normalized metadata.
-        """
-        # TODO: Implement, once common metadata format is planned out.
-        pass
-
-    def download_model(self, model: Any, *args: Optional[List], **kwargs: Optional[dict]) -> None:
-        """
-        Abstract method for downloading a model.
-        :param model: Model object.
-        :param args: Arbitrary arguments.
-        :param kwargs: Arbitrary keyword arguments.
-        """
-        pass
-
-    def download_asset(self, asset_type: str, url: str, output_path: str) -> bool:
-        """
-        Method for downloading assets to disk.
+        Abstract method for downloading assets for a target object.
+        :param target_type: Type of target object.
+        :param target_object: Target object.
         :param asset_type: Asset type.
-        :param url: Asset URL.
-        :param output_path: Output path.
-        :return: True, if process was successful, else False.
+        :param path: Path to download assets to.
+        :param kwargs: Arbitrary keyword arguments.
+        :return: Asset data dictionaries.
         """
-        if asset_type == "image":
-            return self.downloading_image(url, output_path)
-
-    @internet_utility.timeout(360.0)
-    def download_image(self, url: str, output_path: str) -> bool:
-        """
-        Method for downloading images to disk.
-        :param url: Image URL.
-        :param output_path: Output path.
-        :return: True, if process was successful, else False.
-        """
-        sleep(2)
-        download = requests.get(url, stream=True, headers={
-                                "Authorization": self.authorization})
-        with open(output_path, 'wb') as file:
-            shutil.copyfileobj(download.raw, file)
-        del download
-        if image_utility.check_image_health(output_path):
-            return True
-        else:
-            return False
+        pass
