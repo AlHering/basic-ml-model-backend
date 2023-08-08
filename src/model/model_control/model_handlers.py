@@ -62,6 +62,29 @@ class AbstractModelHandler(object):
         self._logger.log(f"Exporting cache to '{export_path}'...")
         json_utility.save(self._cache, export_path)
 
+    def get_unlinked_models(self, task: str = None) -> List[Any]:
+        """
+        Method for acquiring unlinked models.
+        :param task: Task constraint.
+            Defaults to None.
+        """
+        filtermask_expressions = [["url", "==", None]]
+        if task is not None:
+            filtermask_expressions.append(["task", "==", task])
+        return self.database.get_objects_by_filtermasks(
+            "model",
+            [FilterMask(filtermask_expressions)]
+        )
+
+    def get_unlinked_modelversions(self) -> List[Any]:
+        """
+        Method for acquiring unlinked modelversions.
+        """
+        return self.database.get_objects_by_filtermasks(
+            "model",
+            [FilterMask([["url", "==", None]])]
+        )
+
     @abc.abstractmethod
     def load_model_folder(self, *args: Optional[List], **kwargs: Optional[dict]) -> None:
         """
