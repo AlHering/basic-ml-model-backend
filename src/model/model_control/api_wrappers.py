@@ -162,9 +162,12 @@ class CivitaiAPIWrapper(AbstractAPIWrapper):
         Abstract method for acquring available targets.
         :param target_type: Type of target object.
         :param kwargs: Arbitrary keyword arguments.
+            'callback': A callback for adding batches of scraping results while scraping process runs.
+                If a callback for adding results is given, this method will return an empty list.
         :return: List of entries of given target type.
         """
         result = []
+        callback = kwargs.get("callback")
         if target_type == "model":
             next_url = self.model_api_endpoint
             while next_url:
@@ -175,7 +178,11 @@ class CivitaiAPIWrapper(AbstractAPIWrapper):
                     next_url = metadata.get("nextPage")
                     if next_url:
                         next_url += "&limit=100"
-                    result.extend(data["items"])
+                    if callback is None:
+                        result.extend(data["items"])
+                    else:
+                        callback(data["items"])
+        return result if callback is None else []
 
     def get_api_url(self, target_type: str, target_object: Any, **kwargs: Optional[dict]) -> Optional[str]:
         """
