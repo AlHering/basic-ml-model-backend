@@ -16,7 +16,7 @@ from src.model.model_control.api_wrappers import AbstractAPIWrapper
 from src.model.model_control.model_database import ModelDatabase
 
 
-class AbstractModelHandler(object):
+class GenericModelHandler(object):
     """
     Class, representing ML Model Handler objects.
     A Model Handler utilizes API Wrappers for collecting metadata and downloading assets from
@@ -85,6 +85,120 @@ class AbstractModelHandler(object):
             [FilterMask([["url", "==", None]])]
         )
 
+    def download_assets(self, target_type: str, target_id: int) -> None:
+        """
+        Method for downloading assets for target.
+        :param target_type: Target object type.
+        :param target_id: Target ID.
+        """
+        obj, wrapper = self.get_object_and_wrapper(target_type, target_id)
+        if obj is not None and wrapper is not None:
+            self.apis[wrapper].download_asset(obj)
+
+    def download_modelversion(self, modelversion_id: int) -> None:
+        """
+        Method for downloading a model.
+        :param modelversion_id: Modelversion ID.
+        """
+        obj, wrapper = self.get_object_and_wrapper(
+            "modelversion", modelversion_id)
+        if obj is not None and wrapper is not None:
+            self.apis[wrapper].download_modelversion(obj)
+
+    def get_object_and_wrapper(self, target_type: str, target_id: int) -> Tuple[Any, str]:
+        """
+        Method for downloading assets for target.
+        :param target_type: Target object type.
+        :param target_id: Target ID.
+        :return: Target object and API wrapper.
+        """
+        obj = None
+        wrapper = None
+
+        obj = self.database.get_object_by_id(target_type, target_id)
+        if obj is not None and obj.url is None:
+            if target_type == "model":
+                self.link_model(target_id)
+            elif target_type == "modelversion":
+                self.link_modelversion(target_id)
+            obj = self.database.get_object_by_id(target_type, target_id)
+
+        if obj is not None and obj.url is not None:
+            wrapper = self.get_api_wrapper_for_url(obj.url)
+
+        return obj, wrapper
+
+    def link_model(self, model_id: int, api_wrapper_name: str = None) -> None:
+        """
+        Method for linking model entries.
+        :param model_id: Model ID.
+        :param api_wrapper_name: Name of API wrapper to use.   
+            Defaults to None in which case all APIs are tested.
+        """
+        model = self.database.get_object_by_id("model", model_id)
+        wrapper_options = list(self.apis.keys()) if api_wrapper_name is None else [
+            api_wrapper_name]
+        for api_wrapper in wrapper_options:
+            result = self.apis[api_wrapper].get_model_page(model)
+            if result is not None:
+                self.database.patch_object("model", model_id, url=result)
+                break
+
+    def link_modelversion(self, modelversion_id: int, api_wrapper_name: str = None) -> None:
+        """
+        Method for linking model version entries.
+        :param model_id: Model ID.
+        :param api_wrapper_name: Name of API wrapper to use.
+            Defaults to None in which case all APIs are tested.
+        """
+        modelversion = self.database.get_object_by_id(
+            "modelversion", modelversion_id)
+        wrapper_options = list(self.apis.keys()) if api_wrapper_name is None else [
+            api_wrapper_name]
+        for api_wrapper in wrapper_options:
+            result = self.apis[api_wrapper].get_api_url(modelversion)
+            if result is not None:
+                self.database.patch_object(
+                    "modelversion", modelversion_id, url=result)
+                break
+
+    def update_metadata(self, target_type: str, target_id: int) -> None:
+        """
+        Method for updating metadata.
+        :param target_type: Target object type.
+        :param target_id: Target ID.
+        """
+        obj, wrapper = self.get_object_and_wrapper(target_type, target_id)
+        if obj is not None:
+            if obj.url is None:
+                if target_type == "model":
+                    self.link_model(target_id)
+                elif target_type == "modelversion":
+                    self.link_modelversion(target_id)
+                obj = self.database.get_object_by_id(target_type, target_id)
+
+        if obj.url is not None and wrapper is not None:
+            metadata = self.apis[wrapper].collect_metadata(obj)
+            if metadata is not None:
+                self.database.patch_object(
+                    target_type, target_id, meta_data=metadata)
+
+    def create_model_folder(self, model_id: int, api_wrapper_name: str = None) -> None:
+        """
+        Method for creating a model folder.
+        :param model_id: Model ID.
+        :param api_wrapper_name: Name of API wrapper to use.   
+            Defaults to None in which case all APIs are tested.
+        """
+        obj, wrapper = self.get_object_and_wrapper("model", model_id)
+        if api_wrapper_name is not None:
+            wrapper = api_wrapper_name
+        if obj:
+            if not os.path.exists(obj.path):
+                os.makedirs(obj.path)
+        if wrapper is not None:
+            self.apis[wrapper].download_model(obj)
+
     @abc.abstractmethod
     def get_api_wrapper_for_url(self, url: str, *args: Optional[List], **kwargs: Optional[dict]) -> Optional[str]:
         """
@@ -100,42 +214,6 @@ class AbstractModelHandler(object):
     def load_model_folder(self, *args: Optional[List], **kwargs: Optional[dict]) -> None:
         """
         Abstract method for loading model folder.
-        :param args: Arbitrary arguments.
-        :param kwargs: Arbitrary keyword arguments.
-        """
-        pass
-
-    @abc.abstractmethod
-    def link_model(self, *args: Optional[List], **kwargs: Optional[dict]) -> None:
-        """
-        Abstract method for linking model.
-        :param args: Arbitrary arguments.
-        :param kwargs: Arbitrary keyword arguments.
-        """
-        pass
-
-    @abc.abstractmethod
-    def link_modelversion(self, *args: Optional[List], **kwargs: Optional[dict]) -> None:
-        """
-        Abstract method for linking model version.
-        :param args: Arbitrary arguments.
-        :param kwargs: Arbitrary keyword arguments.
-        """
-        pass
-
-    @abc.abstractmethod
-    def update_metadata(self, *args: Optional[List], **kwargs: Optional[dict]) -> None:
-        """
-        Abstract method for updating cached metadata.
-        :param args: Arbitrary arguments.
-        :param kwargs: Arbitrary keyword arguments.
-        """
-        pass
-
-    @abc.abstractmethod
-    def download_model(self, *args: Optional[List], **kwargs: Optional[dict]) -> None:
-        """
-        Abstract method for downloading a model.
         :param args: Arbitrary arguments.
         :param kwargs: Arbitrary keyword arguments.
         """
@@ -160,7 +238,7 @@ class AbstractModelHandler(object):
         pass
 
 
-class LanguageModelHandler(AbstractModelHandler):
+class LanguageModelHandler(GenericModelHandler):
     """
     Class, representing Model Handler for language models.
     """
@@ -204,54 +282,3 @@ class LanguageModelHandler(AbstractModelHandler):
                         "path": folder,
                         "task": task
                     } if index is None or folder not in index else index[folder])
-
-    # Override
-    def link_model(self, model_id: int, api_wrapper_name: str = None) -> None:
-        """
-        Method for linking model entries.
-        :param model_id: Model ID.
-        :param api_wrapper_name: Name of API wrapper to use.   
-            Defaults to None in which case all APIs are tested.
-        """
-        model = self.database.get_object_by_id("model", model_id)
-        wrapper_options = list(self.apis.keys()) if api_wrapper_name is None else [
-            api_wrapper_name]
-        for api_wrapper in wrapper_options:
-            result = self.apis[api_wrapper].get_model_page(model)
-            if result is not None:
-                self.database.patch_object("model", model_id, url=result)
-                break
-
-    # Override
-    def link_modelversion(self, modelversion_id: int, api_wrapper_name: str = None) -> None:
-        """
-        Method for linking model version entries.
-        :param model_id: Model ID.
-        :param api_wrapper_name: Name of API wrapper to use.
-            Defaults to None in which case all APIs are tested.
-        """
-        modelversion = self.database.get_object_by_id(
-            "modelversion", modelversion_id)
-        wrapper_options = list(self.apis.keys()) if api_wrapper_name is None else [
-            api_wrapper_name]
-        for api_wrapper in wrapper_options:
-            result = self.apis[api_wrapper].get_api_url(modelversion)
-            if result is not None:
-                self.database.patch_object(
-                    "modelversion", modelversion_id, url=result)
-                break
-
-    # Override
-    def update_metadata(self, target_type: str, target_id: int) -> None:
-        """
-        Method for updating metadata.
-        :param target_type: Target object type.
-        :param target_id: Target ID.
-        """
-        obj = self.database.get_object_by_id(target_type, target_id)
-        if obj.url is not None:
-            wrapper = self.get_api_wrapper_for_url(obj.url)
-            metadata = self.apis[wrapper].collect_metadata(obj)
-            if metadata is not None:
-                self.database.patch_object(
-                    target_type, target_id, meta_data=metadata)

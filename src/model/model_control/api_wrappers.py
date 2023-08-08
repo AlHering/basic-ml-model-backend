@@ -76,18 +76,30 @@ class AbstractAPIWrapper(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def download_model(self, *args: Optional[List], **kwargs: Optional[dict]) -> None:
+    def download_model(self, model: Any, *args: Optional[List], **kwargs: Optional[dict]) -> None:
         """
         Abstract method for downloading a model.
+        :param model: Model object.
         :param args: Arbitrary arguments.
         :param kwargs: Arbitrary keyword arguments.
         """
         pass
 
     @abc.abstractmethod
-    def download_asset(self, *args: Optional[List], **kwargs: Optional[dict]) -> None:
+    def download_modelversion(self, modelversion: Any, *args: Optional[List], **kwargs: Optional[dict]) -> None:
+        """
+        Abstract method for downloading a model.
+        :param modelversion: Model version object.
+        :param args: Arbitrary arguments.
+        :param kwargs: Arbitrary keyword arguments.
+        """
+        pass
+
+    @abc.abstractmethod
+    def download_asset(self, target_object: Any, *args: Optional[List], **kwargs: Optional[dict]) -> None:
         """
         Abstract method for downloading an asset.
+        :param target_object: Target object to download assets for.
         :param args: Arbitrary arguments.
         :param kwargs: Arbitrary keyword arguments.
         """
@@ -178,9 +190,10 @@ class CivitaiAbstractAPIWrapper(AbstractAPIWrapper):
         # TODO: Implement, once common metadata format is planned out.
         pass
 
-    def download_model(self, *args: Optional[List], **kwargs: Optional[dict]) -> None:
+    def download_model(self, model: Any, *args: Optional[List], **kwargs: Optional[dict]) -> None:
         """
         Abstract method for downloading a model.
+        :param model: Model object.
         :param args: Arbitrary arguments.
         :param kwargs: Arbitrary keyword arguments.
         """

@@ -6,7 +6,7 @@
 ****************************************************
 """
 from typing import List, Any
-from src.model.model_control.model_handlers import AbstractModelHandler
+from src.model.model_control.model_handlers import GenericModelHandler
 from src.model.model_control.model_database import ModelDatabase
 
 
@@ -17,7 +17,7 @@ class ModelController(object):
     model services for collecting metadata and downloading assets.
     """
 
-    def __init__(self, handlers: List[AbstractModelHandler] = None) -> None:
+    def __init__(self, handlers: List[GenericModelHandler] = None) -> None:
         """
         Initiation method.
         """
@@ -25,7 +25,7 @@ class ModelController(object):
             database_uri=None, schema="model_control")
         self.handlers = [] if handlers is None else handlers
 
-    def add_handler(self, handler: AbstractModelHandler) -> None:
+    def add_handler(self, handler: GenericModelHandler) -> None:
         """
         Method for adding handler.
         :param handler_class: Handler object.

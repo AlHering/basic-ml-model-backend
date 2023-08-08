@@ -31,9 +31,9 @@ def populate_data_instrastructure(base: Any, engine: Engine, schema: str, model:
 
         id = Column(Integer, primary_key=True, unique=True, nullable=False, autoincrement=True,
                     comment="ID of the model.")
-        path = Column(String, nullable=False,
+        path = Column(String,
                       comment="Path of the model folder.")
-        task = Column(String, nullable=False,
+        task = Column(String,
                       comment="Task of the model.")
         architecture = Column(String,
                               comment="Architecture/basemodel of the model.")
