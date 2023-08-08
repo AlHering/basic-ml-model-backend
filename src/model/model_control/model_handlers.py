@@ -95,9 +95,18 @@ class AbstractModelHandler(object):
         pass
 
     @abc.abstractmethod
-    def link_model_file(self, *args: Optional[List], **kwargs: Optional[dict]) -> None:
+    def link_model(self, *args: Optional[List], **kwargs: Optional[dict]) -> None:
         """
-        Abstract method for linking model files.
+        Abstract method for linking model.
+        :param args: Arbitrary arguments.
+        :param kwargs: Arbitrary keyword arguments.
+        """
+        pass
+
+    @abc.abstractmethod
+    def link_modelversion(self, *args: Optional[List], **kwargs: Optional[dict]) -> None:
+        """
+        Abstract method for linking model version.
         :param args: Arbitrary arguments.
         :param kwargs: Arbitrary keyword arguments.
         """
@@ -182,3 +191,39 @@ class TextgenerationModelHandler(AbstractModelHandler):
                         "path": folder,
                         "task": task
                     } if index is None or folder not in index else index[folder])
+
+    # Override
+    def link_model(self, model_id: int, api_wrapper_name: str = None) -> None:
+        """
+        Abstract method for linking model files.
+        :param model_id: Model ID.
+        :param api_wrapper_name: Name of API wrapper to use.   
+            Defaults to None in which case all APIs are tested.
+        """
+        model = self.database.get_object_by_id("model", model_id)
+        wrapper_options = list(self.apis.keys()) if api_wrapper_name is None else [
+            api_wrapper_name]
+        for api_wrapper in wrapper_options:
+            result = self.apis[api_wrapper].get_model_page(model)
+            if result is not None:
+                self.database.patch_object("model", model_id, url=result)
+                break
+
+    # Override
+    def link_modelversion(self, modelversion_id: int, api_wrapper_name: str = None) -> None:
+        """
+        Abstract method for linking model files.
+        :param model_id: Model ID.
+        :param api_wrapper_name: Name of API wrapper to use.
+            Defaults to None in which case all APIs are tested.
+        """
+        modelversion = self.database.get_object_by_id(
+            "modelversion", modelversion_id)
+        wrapper_options = list(self.apis.keys()) if api_wrapper_name is None else [
+            api_wrapper_name]
+        for api_wrapper in wrapper_options:
+            result = self.apis[api_wrapper].get_api_url(modelversion)
+            if result is not None:
+                self.database.patch_object(
+                    "modelversion", modelversion_id, url=result)
+                break
