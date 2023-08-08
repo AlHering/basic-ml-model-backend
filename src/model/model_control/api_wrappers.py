@@ -147,10 +147,9 @@ class CivitaiAPIWrapper(AbstractAPIWrapper):
             "Connection could not be established.")
         return result
 
-    @abc.abstractmethod
     def validate_url_responsiblity(self, url: str, *args: Optional[List], **kwargs: Optional[dict]) -> bool:
         """
-        Abstract method for validating the responsiblity for a URL.
+        Method for validating the responsiblity for a URL.
         :param url: Target URL.
         :param args: Arbitrary arguments.
         :param kwargs: Arbitrary keyword arguments.
