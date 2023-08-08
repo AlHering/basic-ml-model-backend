@@ -15,10 +15,10 @@ from src.configuration import configuration as cfg
 from src.model.backend_control.dataclasses import create_or_load_database, sqlalchemy_utility
 
 
-TESTING_DB_PATH = f"{cfg.PATHS.TEST_PATH}/backend.db"
+TESTING_DB_PATH = f"{cfg.PATHS.TEST_PATH}/DataclassTest/backend.db"
 
 
-class DataBackendTest(unittest.TestCase):
+class DataclassTest(unittest.TestCase):
     """
     Test case class for testing the data backend.
     """
@@ -129,8 +129,8 @@ class DataBackendTest(unittest.TestCase):
         """
         Class method for setting up test case.
         """
-        if not os.path.exists(cfg.PATHS.TEST_PATH):
-            os.makedirs(cfg.PATHS.TEST_PATH)
+        if not os.path.exists(f"{cfg.PATHS.TEST_PATH}/DataclassTest/"):
+            os.makedirs(f"{cfg.PATHS.TEST_PATH}/DataclassTest/")
         cls.data_infrastructure = create_or_load_database(
             f"sqlite:///{TESTING_DB_PATH}")
         cls.example_model_data = {
