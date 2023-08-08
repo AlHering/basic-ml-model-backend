@@ -68,7 +68,7 @@ class AbstractAPIWrapper(abc.ABC):
     @abc.abstractmethod
     def collect_metadata(self, target_type: str, target_object: Any, *args: Optional[List], **kwargs: Optional[dict]) -> dict:
         """
-        Abstract method for acquring model data by identifier.
+        Abstract method for acquring model data by target type and object.
         :param target_type: Type of target object.
         :param target_object: Target object.
         :param args: Arbitrary arguments.
@@ -78,9 +78,11 @@ class AbstractAPIWrapper(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def normalize_metadata(self, metadata: dict, *args: Optional[List], **kwargs: Optional[dict]) -> dict:
+    def normalize_metadata(self, target_type: str, target_object: Any, metadata: dict, *args: Optional[List], **kwargs: Optional[dict]) -> dict:
         """
         Abstract method for normalizing metadata.
+        :param target_type: Type of target object.
+        :param target_object: Target object.
         :param metadata: Metadata.
         :param args: Arbitrary arguments.
         :param kwargs: Arbitrary keyword arguments.
@@ -169,7 +171,7 @@ class CivitaiAPIWrapper(AbstractAPIWrapper):
         pass
 
     @abc.abstractmethod
-    def get_api_url(self, target_type: str, target_object: Any, *args: Optional[List], **kwargs: Optional[dict]) -> str:
+    def get_api_url(self, target_type: str, target_object: Any, *args: Optional[List], **kwargs: Optional[dict]) -> Optional[str]:
         """
         Abstract method for acquring API URL for a given object.
         :param target_type: Type of target object.
@@ -178,9 +180,9 @@ class CivitaiAPIWrapper(AbstractAPIWrapper):
         :param kwargs: Arbitrary keyword arguments.
         :return: API URL for given object.
         """
-        pass
+        if target_type == "modelversion":
+            return self.model_by_versionhash_url + str(target_object.sha256)
 
-    @abc.abstractmethod
     def collect_metadata(self, target_type: str, target_object: Any, *args: Optional[List], **kwargs: Optional[dict]) -> dict:
         """
         Abstract method for acquring model data by identifier.
@@ -190,7 +192,20 @@ class CivitaiAPIWrapper(AbstractAPIWrapper):
         :param kwargs: Arbitrary keyword arguments.
         :return: Metadata for given model ID.
         """
-        pass
+        self._logger.info(
+            f"Fetching metadata for model with '{target_type}': '{target_object.id}'...")
+        resp = requests.get(target_object.url, headers={
+                            "Authorization": self.authorization})
+        try:
+            meta_data = json.loads(resp.content)
+            if meta_data is not None and not "error" in meta_data:
+                self._logger.info(f"Fetching metadata was successful.")
+                return self.normalize_metadata(target_type, target_object, meta_data)
+            else:
+                self._logger.warn(f"Fetching metadata failed.")
+        except json.JSONDecodeError:
+            self._logger.warn(f"Metadata response could not be deserialized.")
+            return {}
 
     @abc.abstractmethod
     def normalize_metadata(self, metadata: dict, *args: Optional[List], **kwargs: Optional[dict]) -> dict:
