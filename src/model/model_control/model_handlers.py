@@ -199,16 +199,15 @@ class GenericModelHandler(object):
         if wrapper is not None:
             self.apis[wrapper].download_model(obj)
 
-    @abc.abstractmethod
-    def get_api_wrapper_for_url(self, url: str, *args: Optional[List], **kwargs: Optional[dict]) -> Optional[str]:
+    def get_api_wrapper_for_url(self, url: str) -> Optional[str]:
         """
         Abstract method for getting API wrapper to handle URL.
         :param url: URL to get wrapper for.
-        :param args: Arbitrary arguments.
-        :param kwargs: Arbitrary keyword arguments.
         :return: Appropriate API wrapper name.
         """
-        pass
+        for wrapper in self.apis:
+            if self.apis[wrapper].validate_url_responsiblity(url):
+                return wrapper
 
     @abc.abstractmethod
     def load_model_folder(self, *args: Optional[List], **kwargs: Optional[dict]) -> None:

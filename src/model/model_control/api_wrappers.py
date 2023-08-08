@@ -32,6 +32,17 @@ class AbstractAPIWrapper(abc.ABC):
         pass
 
     @abc.abstractmethod
+    def validate_url_responsiblity(self, url: str, *args: Optional[List], **kwargs: Optional[dict]) -> bool:
+        """
+        Abstract method for validating the responsiblity for a URL.
+        :param url: Target URL.
+        :param args: Arbitrary arguments.
+        :param kwargs: Arbitrary keyword arguments.
+        :return: True, if wrapper is responsible for URL else False.
+        """
+        pass
+
+    @abc.abstractmethod
     def get_model_page(self, model_object: Any, *args: Optional[List], **kwargs: Optional[dict]) -> str:
         """
         Abstract method for acquring model page for model.
