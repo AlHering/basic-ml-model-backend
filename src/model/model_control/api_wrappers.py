@@ -8,6 +8,7 @@
 import requests
 import json
 from time import sleep
+from urllib.parse import urlparse
 import shutil
 from typing import Any, Optional, List
 from src.utility.silver import image_utility, internet_utility
@@ -21,7 +22,6 @@ class AbstractAPIWrapper(abc.ABC):
     Such wrappers are used for connecting to model services.
     """
 
-    @abc.abstractmethod
     def check_connection(self, *args: Optional[List], **kwargs: Optional[dict]) -> bool:
         """
         Abstract method for checking connection.
@@ -156,7 +156,7 @@ class CivitaiAPIWrapper(AbstractAPIWrapper):
         :param kwargs: Arbitrary keyword arguments.
         :return: True, if wrapper is responsible for URL else False.
         """
-        pass
+        return urlparse(url).netloc in self.base_url
 
     @abc.abstractmethod
     def scrape_available_targets(self, target_type: str, *args: Optional[List], **kwargs: Optional[dict]) -> List[dict]:
