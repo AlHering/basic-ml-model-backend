@@ -47,13 +47,13 @@ class ModelDatabase(object):
 
         self._logger.info(
             f"Generating model tables for website with schema {schema}")
-        populate_data_instrastructure(self.base, self.schema, self.model)
+        populate_data_instrastructure(
+            self.base, self.engine, self.schema, self.model)
         self.primary_keys = {
             object_class: self.model[object_class].__mapper__.primary_key[0].name for object_class in self.model}
         if self.verbose:
             self._logger.info(f"Datamodel after addition: {self.model}")
         self._logger.info("Creating new structures")
-        self.base.metadata.create_all(bind=self.engine)
 
     """
     Default object interaction.
