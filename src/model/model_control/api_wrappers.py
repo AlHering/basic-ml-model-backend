@@ -32,14 +32,26 @@ class AbstractAPIWrapper(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def get_api_url(self, identifier: str, model_id: Any, *args: Optional[List], **kwargs: Optional[dict]) -> str:
+    def get_model_page(self, identifier: str, model_id: Any, *args: Optional[List], **kwargs: Optional[dict]) -> str:
         """
-        Abstract method for acquring API URL for model.
+        Abstract method for acquring model page for model.
         :param identifier: Type of identification.
         :model_id: Identification of specified type.
         :param args: Arbitrary arguments.
         :param kwargs: Arbitrary keyword arguments.
-        :return: API URL for given model ID.
+        :return: Model page for given model ID.
+        """
+        pass
+
+    @abc.abstractmethod
+    def get_api_url(self, identifier: str, model_id: Any, *args: Optional[List], **kwargs: Optional[dict]) -> str:
+        """
+        Abstract method for acquring API URL for model version.
+        :param identifier: Type of identification.
+        :model_id: Identification of specified type.
+        :param args: Arbitrary arguments.
+        :param kwargs: Arbitrary keyword arguments.
+        :return: API URL for given model version ID.
         """
         pass
 
@@ -113,14 +125,25 @@ class CivitaiAbstractAPIWrapper(AbstractAPIWrapper):
             "Connection could not be established.")
         return result
 
-    def get_api_url(self, identifier: str, model_id: Any, *args: Optional[List], **kwargs: Optional[dict]) -> str:
+    def get_model_page(self, identifier: str, model_id: Any, *args: Optional[List], **kwargs: Optional[dict]) -> str:
         """
-        Abstract method for acquring API URL for model.
+        Abstract method for acquring model page for model.
         :param identifier: Type of identification.
         :model_id: Identification of specified type.
         :param args: Arbitrary arguments.
         :param kwargs: Arbitrary keyword arguments.
-        :return: API URL for given model ID.
+        :return: Model page for given model ID.
+        """
+        return {"hash": self.model_by_versionhash_url, "id": self.model_by_id_url}[identifier] + str(model_id)
+
+    def get_api_url(self, identifier: str, model_id: Any, *args: Optional[List], **kwargs: Optional[dict]) -> str:
+        """
+        Abstract method for acquring API URL for model version.
+        :param identifier: Type of identification.
+        :model_id: Identification of specified type.
+        :param args: Arbitrary arguments.
+        :param kwargs: Arbitrary keyword arguments.
+        :return: API URL for given model version ID.
         """
         return {"hash": self.model_by_versionhash_url, "id": self.model_by_id_url}[identifier] + str(model_id)
 
