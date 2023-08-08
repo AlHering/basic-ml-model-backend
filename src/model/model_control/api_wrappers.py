@@ -43,32 +43,23 @@ class AbstractAPIWrapper(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def get_model_page(self, model_object: Any, *args: Optional[List], **kwargs: Optional[dict]) -> str:
+    def get_api_url(self, target_type: str, target_object: Any, *args: Optional[List], **kwargs: Optional[dict]) -> str:
         """
-        Abstract method for acquring model page for model.
-        :param model_object: Model object.
+        Abstract method for acquring API URL for a given object.
+        :param target_type: Type of target object.
+        :param target_object: Target object.
         :param args: Arbitrary arguments.
         :param kwargs: Arbitrary keyword arguments.
-        :return: Model page for given model ID.
+        :return: API URL for given object.
         """
         pass
 
     @abc.abstractmethod
-    def get_api_url(self, modelversion_object: Any, *args: Optional[List], **kwargs: Optional[dict]) -> str:
-        """
-        Abstract method for acquring API URL for model version.
-        :param modelversion_object: Model version object.
-        :param args: Arbitrary arguments.
-        :param kwargs: Arbitrary keyword arguments.
-        :return: API URL for given model version ID.
-        """
-        pass
-
-    @abc.abstractmethod
-    def collect_metadata(self, target_object: Any, *args: Optional[List], **kwargs: Optional[dict]) -> dict:
+    def collect_metadata(self, target_type: str, target_object: Any, *args: Optional[List], **kwargs: Optional[dict]) -> dict:
         """
         Abstract method for acquring model data by identifier.
-        :param target_object: Target object to collect metadata for.
+        :param target_type: Type of target object.
+        :param target_object: Target object.
         :param args: Arbitrary arguments.
         :param kwargs: Arbitrary keyword arguments.
         :return: Metadata for given model ID.

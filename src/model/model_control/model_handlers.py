@@ -16,7 +16,7 @@ from src.model.model_control.api_wrappers import AbstractAPIWrapper
 from src.model.model_control.model_database import ModelDatabase
 
 
-class GenericModelHandler(object):
+class GenericModelHandler(abc.ABC):
     """
     Class, representing ML Model Handler objects.
     A Model Handler utilizes API Wrappers for collecting metadata and downloading assets from
@@ -139,7 +139,7 @@ class GenericModelHandler(object):
         wrapper_options = list(self.apis.keys()) if api_wrapper_name is None else [
             api_wrapper_name]
         for api_wrapper in wrapper_options:
-            result = self.apis[api_wrapper].get_model_page(model)
+            result = self.apis[api_wrapper].get_api_url("model", model)
             if result is not None:
                 self.database.patch_object("model", model_id, url=result)
                 break
@@ -156,7 +156,8 @@ class GenericModelHandler(object):
         wrapper_options = list(self.apis.keys()) if api_wrapper_name is None else [
             api_wrapper_name]
         for api_wrapper in wrapper_options:
-            result = self.apis[api_wrapper].get_api_url(modelversion)
+            result = self.apis[api_wrapper].get_api_url(
+                "modelversion", modelversion)
             if result is not None:
                 self.database.patch_object(
                     "modelversion", modelversion_id, url=result)
