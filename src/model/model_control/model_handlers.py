@@ -5,11 +5,12 @@
 *            (c) 2023 Alexander Hering             *
 ****************************************************
 """
-from typing import Any, Optional, List, Tuple
+import os
+from typing import Any, Optional, List, Tuple, Dict
 import abc
 from src.configuration import configuration as cfg
-import os
 from src.utility.bronze import json_utility, hashing_utility, dictionary_utility
+from src.model.model_control.api_wrappers import AbstractAPIWrapper
 from src.model.model_control.model_database import ModelDatabase
 
 
@@ -20,24 +21,32 @@ class AbstractModelHandler(object):
     model services and managing updates, organization and usage.
     """
 
-    def __init__(self, db_interface: ModelDatabase, api_wrapper_dict: dict, cache: dict = None) -> None:
+    def __init__(self, database: ModelDatabase, model_folder: str, cache_path: str, apis: Dict[str, AbstractAPIWrapper] = None, subtypes: List[str] = None) -> None:
         """
         Initiation method.
-        :param db_interface: Model database.
-        :param api_wrapper_dict: Dictionary, mapping source to API wrapper.
-        :param cache: Cache to initialize handler with.
-            Defaults to None in which case an empty cache is created.
+        :param database: Database for model data.
+        :param model_folder: Model folder under which the handlers models are kept.
+        :param cache_path: Cache path for handler.
+        :param apis: API wrappers.
+        :param subtypes: Model subtypes.
         """
         self._logger = cfg.Logger
-        self._db = db_interface
-        self._apis = api_wrapper_dict
-        self._cache = cache if cache is not None else {}
+        self.database = database
+        self.model_folder = model_folder
+        self.cache_path = cache_path
+        self.apis = [] if apis is None else apis
+        self.subtypes = [] if subtypes is None else subtypes
+        self._cache = {}
+        if os.path.exists(self.cache_path):
+            self.import_cache()
 
-    def import_cache(self, import_path: str) -> None:
+    def import_cache(self, import_path: str = None) -> None:
         """
         Method for importing cache data.
         :param import_path: Import path.
+            Defaults to handler's cache path.
         """
+        import_path = self.cache_path if import_path is None else import_path
         self._logger.log(f"Importing cache from '{import_path}'...")
         self._cache = json_utility.load(import_path)
 
@@ -45,7 +54,9 @@ class AbstractModelHandler(object):
         """
         Method for exporting cache data.
         :param export_path: Export path.
+            Defaults to handler's cache path.
         """
+        export_path = self.cache_path if export_path is None else export_path
         self._logger.log(f"Exporting cache to '{export_path}'...")
         json_utility.save(self._cache, export_path)
 
@@ -77,9 +88,18 @@ class AbstractModelHandler(object):
         pass
 
     @abc.abstractmethod
-    def organize_models(self, *args: Optional[List], **kwargs: Optional[dict]) -> None:
+    def download_model(self, *args: Optional[List], **kwargs: Optional[dict]) -> None:
         """
-        Abstract method for organizing local models.
+        Abstract method for downloading a model.
+        :param args: Arbitrary arguments.
+        :param kwargs: Arbitrary keyword arguments.
+        """
+        pass
+
+    @abc.abstractmethod
+    def scrape_available_models(self, *args: Optional[List], **kwargs: Optional[dict]) -> None:
+        """
+        Abstract method for scraping available models.
         :param args: Arbitrary arguments.
         :param kwargs: Arbitrary keyword arguments.
         """
@@ -95,112 +115,33 @@ class AbstractModelHandler(object):
         pass
 
 
-class StabeDiffusionModelHandler(AbstractModelHandler):
+class TextgenerationModelHandler(AbstractModelHandler):
     """
-    Class, representing Model Handler for Stable Diffusion models.
+    Class, representing Model Handler for text generation models.
     """
 
-    def __init__(self, db_interface: ModelDatabase, api_wrapper_dict: dict) -> None:
+    def __init__(self, database: ModelDatabase, model_folder: str, cache_path: str, apis: Dict[str, AbstractAPIWrapper] = None, subtypes: List[str] = None) -> None:
         """
         Initiation method.
-        :param db_interface: Model database.
-        :param api_wrapper_dict: Dictionary, mapping source to API wrapper.
+        :param database: Database for model data.
+        :param model_folder: Model folder under which the handlers models are kept.
+        :param cache_path: Cache path for handler.
+        :param apis: API wrappers.
+        :param subtypes: Model subtypes.
         """
-        super().__init__(db_interface, api_wrapper_dict)
-        self._logger = cfg.LOGGER
+        super().__init__(database, model_folder, cache_path, apis, subtypes)
 
-    def load_model_folder(self, model_folder: str, ignored_sub_folders: List[str] = [], ignored_model_files: List[str] = []) -> None:
+    def load_model_folder(self) -> None:
         """
-        Method for loading model folder.
-        :param model_folder: Model folder to load.
-        :param ignored_sub_folders: Subfolder parts to ignore.  
-            Defaults to an empty list.
-        :param ignored_model_files: Model files to ignore.  
-            Defaults to an empty list.
-        """
-        self._logger.info(f"Loading model folders under '{model_folder}'...")
-        already_tracked_files = self._db.get_tracked_model_files(
-            model_folder, ignored_sub_folders, ignored_model_files)
-        self._logger.info(
-            f"Found {len(already_tracked_files)} already tracked files...")
-
-        for root, _, files in os.walk(model_folder, topdown=True):
-            self._logger.info(f"Checking '{root}'...")
-
-            if any(subfolder in ignored_sub_folders for subfolder in root.replace(
-                    model_folder, "").split("/")):
-                self._logger.info(f"Ignoring '{root}'.")
-            else:
-                for model_file in self.extract_model_files(files):
-                    self._logger.info(f"Found '{model_file}'.")
-                    full_model_path = os.path.join(root, model_file)
-                    if not any(os.path.join(model.folder, model.file_name) == full_model_path for model in already_tracked_files):
-                        if model_file not in ignored_model_files:
-                            self._logger.info(
-                                f"'{model_file}' is not tracked, collecting data...")
-
-                            data = {
-                                "file_name": model_file,
-                                "folder": root,
-                                "sha256": hashing_utility.hash_with_sha256(os.path.join(root, model_file))
-                            }
-                            self._db._post(
-                                "model_file", self._db.model["model_file"](**data))
-
-                        else:
-                            self._logger.info(f"Ignoring '{model_file}'.")
-                    else:
-                        self._logger.info(
-                            f"'{model_file}' is already tracked.")
-
-    def link_model_file(self, files: List[str] = None) -> None:
-        """
-        Method for linking model files.
-        :param files: Files to link.
-            Defaults to None, in which case all unknown models are linked.
-        """
-        for unkown_model in self._db.get_unlinked_model_files(files):
-            linkage = self.calculate_linkage(unkown_model)
-            if linkage is not None:
-                self._db.link_model_file(unkown_model, {
-                    "source": linkage[0],
-                    "api_url": linkage[1],
-                    "metadata": linkage[2]
-                })
-
-    def calculate_linkage(self, model_file: Any) -> Optional[Tuple[str, str, dict]]:
-        """
-        Method for calculating source linkage.
-        :param model_file: Model file object.
-        :return: Tuple of source and API URL and metadata if found else None.
-        """
-        for possible_source in self._apis:
-            metadata = self._apis[possible_source].collect_metadata(
-                "hash", model_file.sha256)
-            if metadata:
-                return possible_source, self._apis[possible_source].get_api_url("hash", model_file.sha256), self._apis[possible_source].normalize_metadata(metadata)
-        return None
-
-    def update_metadata(self, *args: Optional[List], **kwargs: Optional[dict]) -> None:
-        """
-        Method for updating cached metadata.
+        Abstract method for loading model folder.
         :param args: Arbitrary arguments.
         :param kwargs: Arbitrary keyword arguments.
         """
-        pass
-
-    def organize_models(self, *args: Optional[List], **kwargs: Optional[dict]) -> None:
-        """
-        Method for organizing local models.
-        :param args: Arbitrary arguments.
-        :param kwargs: Arbitrary keyword arguments.
-        """
-        pass
-
-    def move_model(self, *args: Optional[List], **kwargs: Optional[dict]) -> None:
-        """
-        Method for moving local model and adjusting metadata.
-        :param args: Arbitrary arguments.
-        :param kwargs: Arbitrary keyword arguments.
-        """
-        pass
+        for _, dirs, _ in os.walk(self.model_folder, topdown=True):
+            self.subtypes.extend([d for d in dirs if d not in self.subtypes])
+            break
+        for subtype in self.subtypes:
+            for _, dirs, _ in os.walk(subtype, topdown=True):
+                self.subtypes.extend(
+                    [d for d in dirs if d not in self.subtypes])
+                break
