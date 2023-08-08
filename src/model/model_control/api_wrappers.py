@@ -147,6 +147,122 @@ class CivitaiAPIWrapper(AbstractAPIWrapper):
             "Connection could not be established.")
         return result
 
+    @abc.abstractmethod
+    def validate_url_responsiblity(self, url: str, *args: Optional[List], **kwargs: Optional[dict]) -> bool:
+        """
+        Abstract method for validating the responsiblity for a URL.
+        :param url: Target URL.
+        :param args: Arbitrary arguments.
+        :param kwargs: Arbitrary keyword arguments.
+        :return: True, if wrapper is responsible for URL else False.
+        """
+        pass
+
+    @abc.abstractmethod
+    def scrape_available_targets(self, target_type: str, *args: Optional[List], **kwargs: Optional[dict]) -> List[dict]:
+        """
+        Abstract method for acquring available targets.
+        :param target_type: Type of target object.
+        :param args: Arbitrary arguments.
+        :param kwargs: Arbitrary keyword arguments.
+        :return: List of entries of given target type.
+        """
+        pass
+
+    @abc.abstractmethod
+    def get_api_url(self, target_type: str, target_object: Any, *args: Optional[List], **kwargs: Optional[dict]) -> str:
+        """
+        Abstract method for acquring API URL for a given object.
+        :param target_type: Type of target object.
+        :param target_object: Target object.
+        :param args: Arbitrary arguments.
+        :param kwargs: Arbitrary keyword arguments.
+        :return: API URL for given object.
+        """
+        pass
+
+    @abc.abstractmethod
+    def collect_metadata(self, target_type: str, target_object: Any, *args: Optional[List], **kwargs: Optional[dict]) -> dict:
+        """
+        Abstract method for acquring model data by identifier.
+        :param target_type: Type of target object.
+        :param target_object: Target object.
+        :param args: Arbitrary arguments.
+        :param kwargs: Arbitrary keyword arguments.
+        :return: Metadata for given model ID.
+        """
+        pass
+
+    @abc.abstractmethod
+    def normalize_metadata(self, metadata: dict, *args: Optional[List], **kwargs: Optional[dict]) -> dict:
+        """
+        Abstract method for normalizing metadata.
+        :param metadata: Metadata.
+        :param args: Arbitrary arguments.
+        :param kwargs: Arbitrary keyword arguments.
+        :return: Normalized metadata.
+        """
+        pass
+
+    @abc.abstractmethod
+    def download_model(self, model: Any, *args: Optional[List], **kwargs: Optional[dict]) -> None:
+        """
+        Abstract method for downloading a model.
+        :param model: Model object.
+        :param args: Arbitrary arguments.
+        :param kwargs: Arbitrary keyword arguments.
+        """
+        pass
+
+    @abc.abstractmethod
+    def download_modelversion(self, modelversion: Any, *args: Optional[List], **kwargs: Optional[dict]) -> None:
+        """
+        Abstract method for downloading a model.
+        :param modelversion: Model version object.
+        :param args: Arbitrary arguments.
+        :param kwargs: Arbitrary keyword arguments.
+        """
+        pass
+
+    @abc.abstractmethod
+    def download_asset(self, target_object: Any, *args: Optional[List], **kwargs: Optional[dict]) -> None:
+        """
+        Abstract method for downloading an asset.
+        :param target_object: Target object to download assets for.
+        :param args: Arbitrary arguments.
+        :param kwargs: Arbitrary keyword arguments.
+        """
+        pass
+
+
+class LegacyCivitaiAPIWrapper(AbstractAPIWrapper):
+    """
+    Class, representing civitai API wrapper.
+    """
+
+    def __init__(self) -> None:
+        """
+        Initiation method.
+        """
+        self._logger = cfg.LOGGER
+        self.authorization = cfg.ENV["CIVITAI_API_KEY"]
+        self.base_url = "https://civitai.com/"
+        self.api_base_url = "https://civitai.com/api/v1/"
+        self.model_by_versionhash_url = "https://civitai.com/api/v1/model-versions/by-hash/"
+        self.model_by_id_url = "https://civitai.com/api/v1/models/"
+
+    def check_connection(self, *args: Optional[List], **kwargs: Optional[dict]) -> bool:
+        """
+        Method for checking connection.
+        :param args: Arbitrary arguments.
+        :param kwargs: Arbitrary keyword arguments.
+        :return: True if connection was established successfuly else False.
+        """
+        result = requests.get(self.base_url).status_code == 200
+        self._logger.info("Connection was successfuly established.") if result else self._logger.warn(
+            "Connection could not be established.")
+        return result
+
     def get_model_page(self, identifier: str, model_id: Any, *args: Optional[List], **kwargs: Optional[dict]) -> str:
         """
         Abstract method for acquring model page for model.
