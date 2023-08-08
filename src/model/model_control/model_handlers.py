@@ -86,6 +86,17 @@ class AbstractModelHandler(object):
         )
 
     @abc.abstractmethod
+    def get_api_wrapper_for_url(self, url: str, *args: Optional[List], **kwargs: Optional[dict]) -> Optional[str]:
+        """
+        Abstract method for getting API wrapper to handle URL.
+        :param url: URL to get wrapper for.
+        :param args: Arbitrary arguments.
+        :param kwargs: Arbitrary keyword arguments.
+        :return: Appropriate API wrapper name.
+        """
+        pass
+
+    @abc.abstractmethod
     def load_model_folder(self, *args: Optional[List], **kwargs: Optional[dict]) -> None:
         """
         Abstract method for loading model folder.
@@ -166,9 +177,10 @@ class LanguageModelHandler(AbstractModelHandler):
         super().__init__(database, model_folder, cache_path, apis, [
             "TEXT_GENERATION", "EMBEDDING", "LORA", "TEXT_CLASSIFICATION"] if tasks is None else tasks)
 
+    # Override
     def load_model_folder(self) -> None:
         """
-        Abstract method for loading model folder.
+        Method for loading model folder.
         :param args: Arbitrary arguments.
         :param kwargs: Arbitrary keyword arguments.
         """
@@ -196,7 +208,7 @@ class LanguageModelHandler(AbstractModelHandler):
     # Override
     def link_model(self, model_id: int, api_wrapper_name: str = None) -> None:
         """
-        Abstract method for linking model files.
+        Method for linking model entries.
         :param model_id: Model ID.
         :param api_wrapper_name: Name of API wrapper to use.   
             Defaults to None in which case all APIs are tested.
@@ -213,7 +225,7 @@ class LanguageModelHandler(AbstractModelHandler):
     # Override
     def link_modelversion(self, modelversion_id: int, api_wrapper_name: str = None) -> None:
         """
-        Abstract method for linking model files.
+        Method for linking model version entries.
         :param model_id: Model ID.
         :param api_wrapper_name: Name of API wrapper to use.
             Defaults to None in which case all APIs are tested.
@@ -228,3 +240,18 @@ class LanguageModelHandler(AbstractModelHandler):
                 self.database.patch_object(
                     "modelversion", modelversion_id, url=result)
                 break
+
+    # Override
+    def update_metadata(self, target_type: str, target_id: int) -> None:
+        """
+        Method for updating metadata.
+        :param target_type: Target object type.
+        :param target_id: Target ID.
+        """
+        obj = self.database.get_object_by_id(target_type, target_id)
+        if obj.url is not None:
+            wrapper = self.get_api_wrapper_for_url(obj.url)
+            metadata = self.apis[wrapper].collect_metadata(obj)
+            if metadata is not None:
+                self.database.patch_object(
+                    target_type, target_id, meta_data=metadata)

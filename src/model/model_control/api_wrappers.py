@@ -54,11 +54,10 @@ class AbstractAPIWrapper(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def collect_metadata(self, identifier: str, model_id: Any, *args: Optional[List], **kwargs: Optional[dict]) -> dict:
+    def collect_metadata(self, target_object: Any, *args: Optional[List], **kwargs: Optional[dict]) -> dict:
         """
         Abstract method for acquring model data by identifier.
-        :param identifier: Type of identification.
-        :model_id: Identification of specified type.
+        :param target_object: Target object to collect metadata for.
         :param args: Arbitrary arguments.
         :param kwargs: Arbitrary keyword arguments.
         :return: Metadata for given model ID.
