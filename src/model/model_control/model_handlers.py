@@ -294,3 +294,53 @@ class LanguageModelHandler(GenericModelHandler):
                         "path": folder,
                         "task": task
                     } if index is None or folder not in index else index[folder])
+
+
+class DiffusionModelHandler(GenericModelHandler):
+    """
+    Class, representing Model Handler for diffusion models.
+    """
+
+    def __init__(self, database: ModelDatabase, model_folder: str, cache_path: str, apis: Dict[str, AbstractAPIWrapper] = None, tasks: List[str] = None) -> None:
+        """
+        Initiation method.
+        :param database: Database for model data.
+        :param model_folder: Model folder under which the handlers models are kept.
+        :param cache_path: Cache path for handler.
+        :param apis: API wrappers.
+        :param tasks: Model tasks.
+        """
+        super().__init__(database, model_folder, cache_path, apis, ["BLIP", "BSRGAN", "CHECKPOINTS", "CODEFORMER",
+                                                                    "CONTROL_NET", "DEEPBOORU", "EMBEDDINGS", "ESRGAN",
+                                                                    "GFPGAN", "HYPERNETWORKS", "KARLO", "LDSR", "LORA",
+                                                                    "LYCORIS", "POSES", "REAL_ESRGAN", "SCUNET",
+                                                                    "STABLE_DIFFUSION", "SWINIR", "TEXTUAL_INVERSION",
+                                                                    "TORCH_DEEPDANBOORU", "VAE", "WILDCARDS"] if tasks is None else tasks)
+
+    # Override
+    def load_model_folder(self) -> None:
+        """
+        Method for loading model folder.
+        :param args: Arbitrary arguments.
+        :param kwargs: Arbitrary keyword arguments.
+        """
+        possible_tasks = file_system_utility.get_all_folders(
+            self.model_folder)
+        self.tasks.extend(
+            [folder for folder in possible_tasks if folder not in self.tasks])
+        for task in self.tasks:
+            index_path = os.path.join(
+                self.model_folder, task, "model_index.json")
+            index = None
+            if os.path.exists(index_path):
+                index = json_utility.load(index_path)
+            for folder in (file_system_utility.get_all_folders(
+                    os.path.join(self.model_folder, task), include_root=False)):
+                if not self.database.get_objects_by_filtermasks(
+                    "model",
+                    [FilterMask([["path", "==", folder], ["task", "==", task]])]
+                ):
+                    self.database.post_object("model", {
+                        "path": folder,
+                        "task": task
+                    } if index is None or folder not in index else index[folder])
