@@ -13,6 +13,9 @@ from src.utility.gold.filter_mask import FilterMask
 from src.configuration import configuration as cfg
 
 
+DEFAULT_PATH = f"sqlite:///{cfg.PATHS.BACKEND_PATH}/model.db"
+
+
 class ModelDatabase(object):
     """
     Class, representing a model database.
@@ -33,7 +36,7 @@ class ModelDatabase(object):
         self._logger.info("Automapping existing structures")
         self.base = automap_base()
         self.engine = sqlalchemy_utility.get_engine(
-            cfg.ENV.get("MODEL_DB", f"sqlite:///{cfg.PATHS.BACKEND_PATH}/model.db") if database_uri is None else database_uri)
+            cfg.ENV.get("MODEL_DB", DEFAULT_PATH) if database_uri is None else database_uri)
         self.base.prepare(autoload_with=self.engine)
         self.session_factory = sqlalchemy_utility.get_session_factory(
             self.engine)
