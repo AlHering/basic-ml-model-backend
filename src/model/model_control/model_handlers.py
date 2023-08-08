@@ -10,6 +10,8 @@ from typing import Any, Optional, List, Tuple, Dict
 import abc
 from src.configuration import configuration as cfg
 from src.utility.bronze import json_utility, hashing_utility, dictionary_utility
+from src.utility.silver import file_system_utility
+from src.utility.gold.filter_mask import FilterMask
 from src.model.model_control.api_wrappers import AbstractAPIWrapper
 from src.model.model_control.model_database import ModelDatabase
 
@@ -21,21 +23,21 @@ class AbstractModelHandler(object):
     model services and managing updates, organization and usage.
     """
 
-    def __init__(self, database: ModelDatabase, model_folder: str, cache_path: str, apis: Dict[str, AbstractAPIWrapper] = None, subtypes: List[str] = None) -> None:
+    def __init__(self, database: ModelDatabase, model_folder: str, cache_path: str, apis: Dict[str, AbstractAPIWrapper] = None, tasks: List[str] = None) -> None:
         """
         Initiation method.
         :param database: Database for model data.
         :param model_folder: Model folder under which the handlers models are kept.
         :param cache_path: Cache path for handler.
         :param apis: API wrappers.
-        :param subtypes: Model subtypes.
+        :param tasks: Model tasks.
         """
         self._logger = cfg.Logger
         self.database = database
         self.model_folder = model_folder
         self.cache_path = cache_path
         self.apis = [] if apis is None else apis
-        self.subtypes = [] if subtypes is None else subtypes
+        self.tasks = [] if tasks is None else tasks
         self._cache = {}
         if os.path.exists(self.cache_path):
             self.import_cache()
@@ -120,16 +122,16 @@ class TextgenerationModelHandler(AbstractModelHandler):
     Class, representing Model Handler for text generation models.
     """
 
-    def __init__(self, database: ModelDatabase, model_folder: str, cache_path: str, apis: Dict[str, AbstractAPIWrapper] = None, subtypes: List[str] = None) -> None:
+    def __init__(self, database: ModelDatabase, model_folder: str, cache_path: str, apis: Dict[str, AbstractAPIWrapper] = None, tasks: List[str] = None) -> None:
         """
         Initiation method.
         :param database: Database for model data.
         :param model_folder: Model folder under which the handlers models are kept.
         :param cache_path: Cache path for handler.
         :param apis: API wrappers.
-        :param subtypes: Model subtypes.
+        :param tasks: Model tasks.
         """
-        super().__init__(database, model_folder, cache_path, apis, subtypes)
+        super().__init__(database, model_folder, cache_path, apis, tasks)
 
     def load_model_folder(self) -> None:
         """
@@ -137,11 +139,23 @@ class TextgenerationModelHandler(AbstractModelHandler):
         :param args: Arbitrary arguments.
         :param kwargs: Arbitrary keyword arguments.
         """
-        for _, dirs, _ in os.walk(self.model_folder, topdown=True):
-            self.subtypes.extend([d for d in dirs if d not in self.subtypes])
-            break
-        for subtype in self.subtypes:
-            for _, dirs, _ in os.walk(subtype, topdown=True):
-                self.subtypes.extend(
-                    [d for d in dirs if d not in self.subtypes])
-                break
+        possible_tasks = file_system_utility.get_all_folders(
+            self.model_folder)
+        self.tasks.extend(
+            [folder for folder in possible_tasks if folder not in self.tasks])
+        for task in self.tasks:
+            index_path = os.path.join(
+                self.model_folder, task, "model_index.json")
+            index = None
+            if os.path.exists(index_path):
+                index = json_utility.load(index_path)
+            for folder in (file_system_utility.get_all_folders(
+                    os.path.join(self.model_folder, task), include_root=False)):
+                if not self.database.get_objects_by_filtermasks(
+                    "model",
+                    [FilterMask([["path", "==", folder], ["task", "==", task]])]
+                ):
+                    self.database.post_object("model", {
+                        "path": folder,
+                        "task": task
+                    } if index is None or folder not in index else index[folder])
