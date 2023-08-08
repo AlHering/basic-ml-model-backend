@@ -33,7 +33,7 @@ class ModelDatabase(object):
         self._logger.info("Automapping existing structures")
         self.base = automap_base()
         self.engine = sqlalchemy_utility.get_engine(
-            cfg.ENV["MODEL_DB"] if database_uri is None else database_uri)
+            cfg.ENV.get("MODEL_DB", f"sqlite:///{cfg.PATHS.BACKEND_PATH}/model.db") if database_uri is None else database_uri)
         self.base.prepare(autoload_with=self.engine)
         self.session_factory = sqlalchemy_utility.get_session_factory(
             self.engine)
