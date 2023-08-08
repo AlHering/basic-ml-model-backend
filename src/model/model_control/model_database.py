@@ -51,11 +51,8 @@ class ModelDatabase(object):
 
         self._logger.info(
             f"Generating model tables for website with schema {schema}")
-        if any(classname not in self.base.classes for classname in ["Model", "Modelversion", "Modelinstance", "Asset", "Log"]):
-            self._logger.info(
-                "Classes missing, repopulating data infrastructure...")
-            populate_data_instrastructure(
-                self.engine, self.schema, self.model)
+        populate_data_instrastructure(
+            self.engine, self.schema, self.model)
         self.primary_keys = {
             object_class: self.model[object_class].__mapper__.primary_key[0].name for object_class in self.model}
         if self.verbose:
