@@ -43,6 +43,17 @@ class AbstractAPIWrapper(abc.ABC):
         pass
 
     @abc.abstractmethod
+    def scrape_available_targets(self, target_type: str, *args: Optional[List], **kwargs: Optional[dict]) -> List[dict]:
+        """
+        Abstract method for acquring available targets.
+        :param target_type: Type of target object.
+        :param args: Arbitrary arguments.
+        :param kwargs: Arbitrary keyword arguments.
+        :return: List of entries of given target type.
+        """
+        pass
+
+    @abc.abstractmethod
     def get_api_url(self, target_type: str, target_object: Any, *args: Optional[List], **kwargs: Optional[dict]) -> str:
         """
         Abstract method for acquring API URL for a given object.
@@ -108,7 +119,7 @@ class AbstractAPIWrapper(abc.ABC):
         pass
 
 
-class CivitaiAbstractAPIWrapper(AbstractAPIWrapper):
+class CivitaiAPIWrapper(AbstractAPIWrapper):
     """
     Class, representing civitai API wrapper.
     """

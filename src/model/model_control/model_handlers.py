@@ -202,7 +202,7 @@ class GenericModelHandler(abc.ABC):
 
     def get_api_wrapper_for_url(self, url: str) -> Optional[str]:
         """
-        Abstract method for getting API wrapper to handle URL.
+        Method for getting API wrapper to handle URL.
         :param url: URL to get wrapper for.
         :return: Appropriate API wrapper name.
         """
@@ -210,19 +210,31 @@ class GenericModelHandler(abc.ABC):
             if self.apis[wrapper].validate_url_responsiblity(url):
                 return wrapper
 
+    def scrape_available_models(self, target_api_wrapper: str) -> List[dict]:
+        """
+        Method for scraping available models.
+        :param target_api_wrapper: Target API wrapper.
+        :return: List of model entries.
+        """
+        return self.apis[target_api_wrapper].scrape_available_targets("model")
+
+    def scrape_available_modelversions(self, target_api_wrapper: str, target_model_id: int = None) -> List[dict]:
+        """
+        Method for scraping available model versions.
+        :param target_api_wrapper: Target API wrapper.
+        :param target_model_id: Model ID constraint for scraping model versions.
+        :return: List of model version entries.
+        """
+        target_model = None
+        if target_model_id is not None:
+            target_model = self.database.get_object_by_id(
+                "model", target_model_id)
+        return self.apis[target_api_wrapper].scrape_available_targets("modelversion", model=target_model)
+
     @abc.abstractmethod
     def load_model_folder(self, *args: Optional[List], **kwargs: Optional[dict]) -> None:
         """
         Abstract method for loading model folder.
-        :param args: Arbitrary arguments.
-        :param kwargs: Arbitrary keyword arguments.
-        """
-        pass
-
-    @abc.abstractmethod
-    def scrape_available_models(self, *args: Optional[List], **kwargs: Optional[dict]) -> None:
-        """
-        Abstract method for scraping available models.
         :param args: Arbitrary arguments.
         :param kwargs: Arbitrary keyword arguments.
         """
