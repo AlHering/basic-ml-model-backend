@@ -149,9 +149,9 @@ class AbstractModelHandler(object):
         pass
 
 
-class TextgenerationModelHandler(AbstractModelHandler):
+class LanguageModelHandler(AbstractModelHandler):
     """
-    Class, representing Model Handler for text generation models.
+    Class, representing Model Handler for language models.
     """
 
     def __init__(self, database: ModelDatabase, model_folder: str, cache_path: str, apis: Dict[str, AbstractAPIWrapper] = None, tasks: List[str] = None) -> None:
@@ -163,7 +163,8 @@ class TextgenerationModelHandler(AbstractModelHandler):
         :param apis: API wrappers.
         :param tasks: Model tasks.
         """
-        super().__init__(database, model_folder, cache_path, apis, tasks)
+        super().__init__(database, model_folder, cache_path, apis, [
+            "TEXT_GENERATION", "EMBEDDING", "LORA", "TEXT_CLASSIFICATION"] if tasks is None else tasks)
 
     def load_model_folder(self) -> None:
         """
