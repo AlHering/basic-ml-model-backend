@@ -9,6 +9,7 @@ from typing import Any, Optional, List
 from src.utility.bronze import sqlalchemy_utility
 from sqlalchemy.ext.automap import automap_base
 from src.model.model_control.data_model import populate_data_instrastructure
+from src.utility.gold.filter_mask import FilterMask
 from src.configuration import configuration as cfg
 
 
@@ -56,10 +57,28 @@ class ModelDatabase(object):
         self._logger.info("Creating new structures")
 
     """
+    Gateway methods
+    """
+
+    def convert_filters(self, entity_type: str, filters: List[FilterMask]) -> list:
+        """
+        Method for coverting common FilterMasks to SQLAlchemy-filter expressions.
+        :param entity_type: Entity type.
+        :param filters: A list of Filtermasks declaring constraints.
+        :return: Filter expressions.
+        """
+        filter_expressions = []
+        for filtermask in filters:
+            filter_expressions.extend([
+                sqlalchemy_utility.SQLALCHEMY_FILTER_CONVERTER[exp[1]](getattr(self.model[entity_type], exp[0]),
+                                                                       exp[2]) for exp in filtermask.expressions])
+        return filter_expressions
+
+    """
     Default object interaction.
     """
 
-    def get_objects(self, object_type: str) -> List[Any]:
+    def get_objects_by_type(self, object_type: str) -> List[Any]:
         """
         Method for acquiring objects.
         :param object_type: Target object type.
@@ -67,7 +86,7 @@ class ModelDatabase(object):
         """
         return self.session_factory().query(self.model[object_type]).all()
 
-    def get_object(self, object_type: str, object_id: Any) -> Optional[Any]:
+    def get_object_by_id(self, object_type: str, object_id: Any) -> Optional[Any]:
         """
         Method for acquiring objects.
         :param object_type: Target object type.
@@ -78,6 +97,20 @@ class ModelDatabase(object):
             getattr(self.model[object_type],
                     self.primary_keys[object_type]) == object_id
         ).first()
+
+    def get_objects_by_filtermasks(self, object_type: str, filtermasks: List[FilterMask]) -> List[Any]:
+        """
+        Method for acquiring objects.
+        :param object_type: Target object type.
+        :param filtermasks: Filtermasks.
+        :return: A list of objects, meeting filtermask conditions.
+        """
+        converted_filters = self.convert_filters(object_type, filtermasks)
+        with self.session_factory() as session:
+            result = session.query(self.model[object_type]).filter(sqlalchemy_utility.SQLALCHEMY_FILTER_CONVERTER["or"](
+                *converted_filters)
+            ).all()
+        return result
 
     def post_object(self, object_type: str, **object_attributes: Optional[Any]) -> Optional[Any]:
         """
