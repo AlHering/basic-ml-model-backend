@@ -213,12 +213,14 @@ class CivitaiAPIWrapper(AbstractAPIWrapper):
             sleep(self.wait)
             data = self.safely_fetch_api_data(next_url)
             next_url = False
-            if data:
+            if isinstance(data, dict):
                 metadata = data["metadata"]
                 next_url = metadata.get("nextPage")
                 if next_url:
                     next_url += "&limit=100"
                 callback(data["items"])
+            else:
+                self._logger.warn(f"Fetched data is no dictionary: {data}")
 
     def get_api_url(self, target_type: str, target_object: Any, **kwargs: Optional[dict]) -> Optional[str]:
         """
