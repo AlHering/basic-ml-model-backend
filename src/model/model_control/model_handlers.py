@@ -225,10 +225,11 @@ class GenericModelHandler(abc.ABC):
         return self.apis[target_api_wrapper].scrape_available_targets("modelversion", model=target_model)
 
     @abc.abstractmethod
-    def patch_object_from_metadata(self, obj: Any, metadata: dict) -> None:
+    def patch_object_from_metadata(self, target_type: str, target_id: int, metadata: dict) -> None:
         """
-        Method for pathing object from metadata.
-        :param obj: Target object.
+        Abstract method for pathing object from metadata.
+        :param target_type: Target object type.
+        :param target_id: Target ID.
         :param metadata: Metadata.
         """
         pass
@@ -270,10 +271,11 @@ class LanguageModelHandler(GenericModelHandler):
             "TEXT_GENERATION", "EMBEDDING", "LORA", "TEXT_CLASSIFICATION"] if tasks is None else tasks)
 
     # Override
-    def patch_object_from_metadata(self, obj: Any, metadata: dict) -> None:
+    def patch_object_from_metadata(self, target_type: str, target_id: int, metadata: dict) -> None:
         """
         Method for pathing object from metadata.
-        :param obj: Target object.
+        :param target_type: Target object type.
+        :param target_id: Target ID.
         :param metadata: Metadata.
         """
         pass
@@ -338,10 +340,11 @@ class DiffusionModelHandler(GenericModelHandler):
                                                                     "TORCH_DEEPDANBOORU", "VAE", "WILDCARDS"] if tasks is None else tasks)
 
     # Override
-    def patch_object_from_metadata(self, obj: Any, metadata: dict) -> None:
+    def patch_object_from_metadata(self, target_type: str, target_id: int, metadata: dict) -> None:
         """
         Method for pathing object from metadata.
-        :param obj: Target object.
+        :param target_type: Target object type.
+        :param target_id: Target ID.
         :param metadata: Metadata.
         """
         pass
