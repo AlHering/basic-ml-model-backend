@@ -7,8 +7,8 @@
 """
 import copy
 from enum import Enum
-from sqlalchemy import Column, String, Boolean, Integer, JSON, Text, DateTime, CHAR, ForeignKey, Table, Float, BLOB, Uuid
-from sqlalchemy.orm import Session, relationship, func
+from sqlalchemy import Column, String, Boolean, Integer, JSON, Text, DateTime, CHAR, ForeignKey, Table, Float, BLOB, Uuid, func
+from sqlalchemy.orm import Session, relationship
 from sqlalchemy import and_, or_, not_, select
 from sqlalchemy import create_engine
 from sqlalchemy.ext.automap import automap_base, classname_for_table
