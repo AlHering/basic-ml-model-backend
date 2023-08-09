@@ -224,15 +224,18 @@ class GenericModelHandler(abc.ABC):
                 "model", target_model_id)
         return self.apis[target_api_wrapper].scrape_available_targets("modelversion", model=target_model)
 
-    @abc.abstractmethod
-    def patch_object_from_metadata(self, target_type: str, target_id: int, metadata: dict) -> None:
+    def patch_object_from_metadata(self, target_type: str, target_id: int, source: str, metadata: dict) -> None:
         """
-        Abstract method for pathing object from metadata.
+        Method for pathing object from metadata.
         :param target_type: Target object type.
         :param target_id: Target ID.
+        :param source: Source / API wrapper name.
         :param metadata: Metadata.
         """
-        pass
+        obj = self.database.get_object_by_id(target_type, target_id)
+        normalized_data = self.apis[source].normalize_metadata(
+            target_type, obj, metadata)
+        self.database.patch_object(target_type, target_id, **normalized_data)
 
     @abc.abstractmethod
     def load_model_folder(self, *args: Optional[List], **kwargs: Optional[dict]) -> None:
@@ -269,16 +272,6 @@ class LanguageModelHandler(GenericModelHandler):
         """
         super().__init__(database, model_folder, cache_path, apis, [
             "TEXT_GENERATION", "EMBEDDING", "LORA", "TEXT_CLASSIFICATION"] if tasks is None else tasks)
-
-    # Override
-    def patch_object_from_metadata(self, target_type: str, target_id: int, metadata: dict) -> None:
-        """
-        Method for pathing object from metadata.
-        :param target_type: Target object type.
-        :param target_id: Target ID.
-        :param metadata: Metadata.
-        """
-        pass
 
     # Override
     def load_model_folder(self) -> None:
@@ -338,16 +331,6 @@ class DiffusionModelHandler(GenericModelHandler):
                                                                     "LYCORIS", "POSES", "REAL_ESRGAN", "SCUNET",
                                                                     "STABLE_DIFFUSION", "SWINIR", "TEXTUAL_INVERSION",
                                                                     "TORCH_DEEPDANBOORU", "VAE", "WILDCARDS"] if tasks is None else tasks)
-
-    # Override
-    def patch_object_from_metadata(self, target_type: str, target_id: int, metadata: dict) -> None:
-        """
-        Method for pathing object from metadata.
-        :param target_type: Target object type.
-        :param target_id: Target ID.
-        :param metadata: Metadata.
-        """
-        pass
 
     # Override
     def load_model_folder(self) -> None:
