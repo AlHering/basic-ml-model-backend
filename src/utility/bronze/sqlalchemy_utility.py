@@ -8,8 +8,8 @@
 import copy
 from enum import Enum
 from sqlalchemy import Column, String, Boolean, Integer, JSON, Text, DateTime, CHAR, ForeignKey, Table, Float, BLOB, Uuid
-from sqlalchemy.orm import Session, relationship
-from sqlalchemy import and_, or_, not_
+from sqlalchemy.orm import Session, relationship, func
+from sqlalchemy import and_, or_, not_, select
 from sqlalchemy import create_engine
 from sqlalchemy.ext.automap import automap_base, classname_for_table
 from sqlalchemy.dialects.mysql import LONGTEXT
@@ -141,6 +141,15 @@ def get_classes_from_base(base: Any) -> dict:
     """
     return {table: base.classes[classname_for_table(base, table, base.metadata.tables[table])] for table in
             base.metadata.tables}
+
+
+def get_entry_count(engine: Engine, table: Table) -> int:
+    """
+    Method for acquiring object count.
+    :param object_type: Target object type.
+    :return: Number of objects.
+    """
+    return int(engine.connect().execute(select(func.count()).select_from(table)).scalar())
 
 
 def create_mapping_from_dictionary(mapping_base: Any, entity_type: str, column_data: dict, linkage_data: dict = None, typing_translation: dict = SQLALCHEMY_TYPING_FROM_STRING_DICTIONARY) -> Any:
