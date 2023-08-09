@@ -254,14 +254,18 @@ class CivitaiAPIWrapper(AbstractAPIWrapper):
                 "name": metadata["name"],
                 "type": metadata["type"].upper(),
                 "architecture": "stablediffusion",
-                "meta_data": copy.deepcopy(metadata)
+                "meta_data": copy.deepcopy(metadata),
+                "url": f"https://civitai.com/api/v1/models/{metadata['id']}",
+                "source": self.get_source_name()
             }["id", "path", "name", "basemodel", "type", "format", "url", "sha256",
                                     "meta_data", "created", "updated", "inactive", "model_id"]
         elif target_type == "modelversion":
             normalized = {
                 "name": metadata["name"],
                 "basemodel": metadata["baseModel"],
-                "meta_data": copy.deepcopy(metadata)
+                "meta_data": copy.deepcopy(metadata),
+                "url": f"https://civitai.com/api/v1/model-versions/{metadata['id']}",
+                "source": self.get_source_name()
             }
         return normalized if normalized else metadata
 
