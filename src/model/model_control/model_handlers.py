@@ -38,7 +38,7 @@ class GenericModelHandler(abc.ABC):
         :param sorters: Model sorting buckets.
             Defaults to None which results in empty list.
         """
-        self._logger = cfg.Logger
+        self._logger = cfg.LOGGER
         self.database = database
         self.model_folder = model_folder
         self.cache_path = cache_path
@@ -391,7 +391,7 @@ class DiffusionModelHandler(GenericModelHandler):
                 except Exception as ex:
                     failed = True
                     exction_data = {
-                        "exception": ex,
+                        "exception": str(ex),
                         "traceback": traceback.format_exc()
                     }
                 if not failed:
@@ -409,7 +409,7 @@ class DiffusionModelHandler(GenericModelHandler):
                     except Exception as ex:
                         failed = True
                         exction_data = {
-                            "exception": ex,
+                            "exception": str(ex),
                             "traceback": traceback.format_exc()
                         }
                 if failed:
