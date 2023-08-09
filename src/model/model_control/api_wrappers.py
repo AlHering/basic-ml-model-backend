@@ -23,6 +23,13 @@ class AbstractAPIWrapper(abc.ABC):
     Abstract class, representing a API wrapper object.
     Such wrappers are used for connecting to model services.
     """
+    @abc.abstractclassmethod
+    def get_source_name(cls) -> str:
+        """
+        Abstract classmethod for retrieving source name.
+        :return: Source name.
+        """
+        pass
 
     def check_connection(self, **kwargs: Optional[dict]) -> bool:
         """
@@ -136,6 +143,13 @@ class CivitaiAPIWrapper(AbstractAPIWrapper):
         self.modelversion_by_hash_endpoint = f"{self.api_base_url}/model-versions/by-hash/"
         self.model_api_endpoint = f"{self.api_base_url}/models/"
         self.wait = 1.5
+
+    def get_source_name(self) -> str:
+        """
+        Classmethod for retrieving source name.
+        :return: Source name.
+        """
+        return "civitai"
 
     def check_connection(self, **kwargs: Optional[dict]) -> bool:
         """
