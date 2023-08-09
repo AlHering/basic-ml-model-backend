@@ -128,39 +128,21 @@ class GenericModelHandler(abc.ABC):
 
         return obj, wrapper
 
-    def link_model(self, model_id: int, api_wrapper_name: str = None) -> None:
+    def link_object(self, target_type: str, target_id: int, api_wrapper_name: str = None) -> None:
         """
-        Method for linking model entries.
-        :param model_id: Model ID.
+        Method for linking objects.
+        :param target_type: Target object type.
+        :param target_id: Target ID.
         :param api_wrapper_name: Name of API wrapper to use.   
             Defaults to None in which case all APIs are tested.
         """
-        model = self.database.get_object_by_id("model", model_id)
+        obj = self.database.get_object_by_id(target_type, target_id)
         wrapper_options = list(self.apis.keys()) if api_wrapper_name is None else [
             api_wrapper_name]
         for api_wrapper in wrapper_options:
-            result = self.apis[api_wrapper].get_api_url("model", model)
+            result = self.apis[api_wrapper].get_api_url(target_type, target_id)
             if result is not None:
-                self.database.patch_object("model", model_id, url=result)
-                break
-
-    def link_modelversion(self, modelversion_id: int, api_wrapper_name: str = None) -> None:
-        """
-        Method for linking model version entries.
-        :param model_id: Model ID.
-        :param api_wrapper_name: Name of API wrapper to use.
-            Defaults to None in which case all APIs are tested.
-        """
-        modelversion = self.database.get_object_by_id(
-            "modelversion", modelversion_id)
-        wrapper_options = list(self.apis.keys()) if api_wrapper_name is None else [
-            api_wrapper_name]
-        for api_wrapper in wrapper_options:
-            result = self.apis[api_wrapper].get_api_url(
-                "modelversion", modelversion)
-            if result is not None:
-                self.database.patch_object(
-                    "modelversion", modelversion_id, url=result)
+                self.database.patch_object(target_type, target_id, url=result)
                 break
 
     def update_metadata(self, target_type: str, target_id: int) -> None:
@@ -232,6 +214,15 @@ class GenericModelHandler(abc.ABC):
         return self.apis[target_api_wrapper].scrape_available_targets("modelversion", model=target_model)
 
     @abc.abstractmethod
+    def patch_object_from_metadata(self, obj: Any, metadata: dict) -> None:
+        """
+        Method for pathing object from metadata.
+        :param obj: Target object.
+        :param metadata: Metadata.
+        """
+        pass
+
+    @abc.abstractmethod
     def load_model_folder(self, *args: Optional[List], **kwargs: Optional[dict]) -> None:
         """
         Abstract method for loading model folder.
@@ -268,54 +259,13 @@ class LanguageModelHandler(GenericModelHandler):
             "TEXT_GENERATION", "EMBEDDING", "LORA", "TEXT_CLASSIFICATION"] if tasks is None else tasks)
 
     # Override
-    def load_model_folder(self) -> None:
+    def patch_object_from_metadata(self, obj: Any, metadata: dict) -> None:
         """
-        Method for loading model folder.
-        :param args: Arbitrary arguments.
-        :param kwargs: Arbitrary keyword arguments.
+        Method for pathing object from metadata.
+        :param obj: Target object.
+        :param metadata: Metadata.
         """
-        possible_tasks = file_system_utility.get_all_folders(
-            self.model_folder)
-        self.tasks.extend(
-            [folder for folder in possible_tasks if folder not in self.tasks])
-        for task in self.tasks:
-            index_path = os.path.join(
-                self.model_folder, task, "model_index.json")
-            index = None
-            if os.path.exists(index_path):
-                index = json_utility.load(index_path)
-            for folder in (file_system_utility.get_all_folders(
-                    os.path.join(self.model_folder, task), include_root=False)):
-                if not self.database.get_objects_by_filtermasks(
-                    "model",
-                    [FilterMask([["path", "==", folder], ["task", "==", task]])]
-                ):
-                    self.database.post_object("model", {
-                        "path": folder,
-                        "task": task
-                    } if index is None or folder not in index else index[folder])
-
-
-class DiffusionModelHandler(GenericModelHandler):
-    """
-    Class, representing Model Handler for diffusion models.
-    """
-
-    def __init__(self, database: ModelDatabase, model_folder: str, cache_path: str, apis: Dict[str, AbstractAPIWrapper] = None, tasks: List[str] = None) -> None:
-        """
-        Initiation method.
-        :param database: Database for model data.
-        :param model_folder: Model folder under which the handlers models are kept.
-        :param cache_path: Cache path for handler.
-        :param apis: API wrappers.
-        :param tasks: Model tasks.
-        """
-        super().__init__(database, model_folder, cache_path, apis, ["BLIP", "BSRGAN", "CHECKPOINTS", "CODEFORMER",
-                                                                    "CONTROL_NET", "DEEPBOORU", "EMBEDDINGS", "ESRGAN",
-                                                                    "GFPGAN", "HYPERNETWORKS", "KARLO", "LDSR", "LORA",
-                                                                    "LYCORIS", "POSES", "REAL_ESRGAN", "SCUNET",
-                                                                    "STABLE_DIFFUSION", "SWINIR", "TEXTUAL_INVERSION",
-                                                                    "TORCH_DEEPDANBOORU", "VAE", "WILDCARDS"] if tasks is None else tasks)
+        pass
 
     # Override
     def load_model_folder(self) -> None:
@@ -344,3 +294,80 @@ class DiffusionModelHandler(GenericModelHandler):
                         "path": folder,
                         "task": task
                     } if index is None or folder not in index else index[folder])
+
+    # Override
+    def move_model(self, *args: Optional[List], **kwargs: Optional[dict]) -> None:
+        """
+        Abstract method for moving local model and adjusting metadata.
+        :param args: Arbitrary arguments.
+        :param kwargs: Arbitrary keyword arguments.
+        """
+        pass
+
+
+class DiffusionModelHandler(GenericModelHandler):
+    """
+    Class, representing Model Handler for diffusion models.
+    """
+
+    def __init__(self, database: ModelDatabase, model_folder: str, cache_path: str, apis: Dict[str, AbstractAPIWrapper] = None, tasks: List[str] = None) -> None:
+        """
+        Initiation method.
+        :param database: Database for model data.
+        :param model_folder: Model folder under which the handlers models are kept.
+        :param cache_path: Cache path for handler.
+        :param apis: API wrappers.
+        :param tasks: Model tasks.
+        """
+        super().__init__(database, model_folder, cache_path, apis, ["BLIP", "BSRGAN", "CHECKPOINTS", "CODEFORMER",
+                                                                    "CONTROL_NET", "DEEPBOORU", "EMBEDDINGS", "ESRGAN",
+                                                                    "GFPGAN", "HYPERNETWORKS", "KARLO", "LDSR", "LORA",
+                                                                    "LYCORIS", "POSES", "REAL_ESRGAN", "SCUNET",
+                                                                    "STABLE_DIFFUSION", "SWINIR", "TEXTUAL_INVERSION",
+                                                                    "TORCH_DEEPDANBOORU", "VAE", "WILDCARDS"] if tasks is None else tasks)
+
+    # Override
+    def patch_object_from_metadata(self, obj: Any, metadata: dict) -> None:
+        """
+        Method for pathing object from metadata.
+        :param obj: Target object.
+        :param metadata: Metadata.
+        """
+        pass
+
+    # Override
+    def load_model_folder(self) -> None:
+        """
+        Method for loading model folder.
+        :param args: Arbitrary arguments.
+        :param kwargs: Arbitrary keyword arguments.
+        """
+        possible_tasks = file_system_utility.get_all_folders(
+            self.model_folder)
+        self.tasks.extend(
+            [folder for folder in possible_tasks if folder not in self.tasks])
+        for task in self.tasks:
+            index_path = os.path.join(
+                self.model_folder, task, "model_index.json")
+            index = None
+            if os.path.exists(index_path):
+                index = json_utility.load(index_path)
+            for folder in (file_system_utility.get_all_folders(
+                    os.path.join(self.model_folder, task), include_root=False)):
+                if not self.database.get_objects_by_filtermasks(
+                    "model",
+                    [FilterMask([["path", "==", folder], ["task", "==", task]])]
+                ):
+                    self.database.post_object("model", {
+                        "path": folder,
+                        "task": task
+                    } if index is None or folder not in index else index[folder])
+
+    # Override
+    def move_model(self, *args: Optional[List], **kwargs: Optional[dict]) -> None:
+        """
+        Abstract method for moving local model and adjusting metadata.
+        :param args: Arbitrary arguments.
+        :param kwargs: Arbitrary keyword arguments.
+        """
+        pass
