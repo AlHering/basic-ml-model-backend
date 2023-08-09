@@ -278,7 +278,7 @@ class LanguageModelHandler(GenericModelHandler):
         :param sorters: Model sorting buckets.
             Defaults to None which results in empty list.
         """
-        super().__init__(database, model_folder, cache_path, apis, [
+        super().__init__(database, model_folder, cache_path, apis, sorting_field, [
             "TEXT_GENERATION", "EMBEDDING", "LORA", "TEXT_CLASSIFICATION"] if sorters is None else sorters)
 
     # Override
@@ -338,12 +338,12 @@ class DiffusionModelHandler(GenericModelHandler):
         :param sorters: Model sorting buckets.
             Defaults to buckets, derived from standard stable diffusion artifacts.
         """
-        super().__init__(database, model_folder, cache_path, apis, ["BLIP", "BSRGAN", "CHECKPOINTS", "CODEFORMER",
-                                                                    "CONTROL_NET", "DEEPBOORU", "EMBEDDINGS", "ESRGAN",
-                                                                    "GFPGAN", "HYPERNETWORKS", "KARLO", "LDSR", "LORA",
-                                                                    "LYCORIS", "POSES", "REAL_ESRGAN", "SCUNET",
-                                                                    "STABLE_DIFFUSION", "SWINIR", "TEXTUAL_INVERSION",
-                                                                    "TORCH_DEEPDANBOORU", "VAE", "WILDCARDS"] if sorters is None else sorters)
+        super().__init__(database, model_folder, cache_path, apis, sorting_field, ["BLIP", "BSRGAN", "CHECKPOINTS", "CODEFORMER",
+                                                                                   "CONTROL_NET", "DEEPBOORU", "EMBEDDINGS", "ESRGAN",
+                                                                                   "GFPGAN", "HYPERNETWORKS", "KARLO", "LDSR", "LORA",
+                                                                                   "LYCORIS", "POSES", "REAL_ESRGAN", "SCUNET",
+                                                                                   "STABLE_DIFFUSION", "SWINIR", "TEXTUAL_INVERSION",
+                                                                                   "TORCH_DEEPDANBOORU", "VAE", "WILDCARDS"] if sorters is None else sorters)
 
     # Override
     def load_model_folder(self) -> None:
