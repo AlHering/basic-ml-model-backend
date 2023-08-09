@@ -20,24 +20,29 @@ class GenericModelHandler(abc.ABC):
     """
     Class, representing ML Model Handler objects.
     A Model Handler utilizes API Wrappers for collecting metadata and downloading assets from
-    model services and managing updates, organization and usage.
+    model services and managing updates, sorter and usage.
     """
 
-    def __init__(self, database: ModelDatabase, model_folder: str, cache_path: str, apis: Dict[str, AbstractAPIWrapper] = None, tasks: List[str] = None) -> None:
+    def __init__(self, database: ModelDatabase, model_folder: str, cache_path: str, apis: Dict[str, AbstractAPIWrapper] = None, sorting_field: str = "task", sorters: List[str] = None) -> None:
         """
         Initiation method.
         :param database: Database for model data.
         :param model_folder: Model folder under which the handlers models are kept.
         :param cache_path: Cache path for handler.
         :param apis: API wrappers.
-        :param tasks: Model tasks.
+            Defaults to None which results in empty list.
+        :param sorting_field: Sorting field.
+            Defaults to "task".
+        :param sorters: Model sorting buckets.
+            Defaults to None which results in empty list.
         """
         self._logger = cfg.Logger
         self.database = database
         self.model_folder = model_folder
         self.cache_path = cache_path
         self.apis = [] if apis is None else apis
-        self.tasks = [] if tasks is None else tasks
+        self.sorting_field = sorting_field
+        self.sorters = [] if sorters is None else sorters
         self._cache = {}
         if os.path.exists(self.cache_path):
             self.import_cache()
@@ -69,15 +74,15 @@ class GenericModelHandler(abc.ABC):
         """
         self.apis[wrapper.get_source_name()] = wrapper
 
-    def get_unlinked_models(self, task: str = None) -> List[Any]:
+    def get_unlinked_models(self, sorter: str = None) -> List[Any]:
         """
         Method for acquiring unlinked models.
-        :param task: Task constraint.
+        :param sorter: sorter constraint.
             Defaults to None.
         """
         filtermask_expressions = [["url", "==", None]]
-        if task is not None:
-            filtermask_expressions.append(["task", "==", task])
+        if sorter is not None:
+            filtermask_expressions.append([self.sorting_field, "==", sorter])
         return self.database.get_objects_by_filtermasks(
             "model",
             [FilterMask(filtermask_expressions)]
@@ -260,17 +265,21 @@ class LanguageModelHandler(GenericModelHandler):
     Class, representing Model Handler for language models.
     """
 
-    def __init__(self, database: ModelDatabase, model_folder: str, cache_path: str, apis: Dict[str, AbstractAPIWrapper] = None, tasks: List[str] = None) -> None:
+    def __init__(self, database: ModelDatabase, model_folder: str, cache_path: str, apis: Dict[str, AbstractAPIWrapper] = None, sorting_field: str = "task", sorters: List[str] = None) -> None:
         """
         Initiation method.
         :param database: Database for model data.
         :param model_folder: Model folder under which the handlers models are kept.
         :param cache_path: Cache path for handler.
         :param apis: API wrappers.
-        :param tasks: Model tasks.
+            Defaults to None which results in empty list.
+        :param sorting_field: Sorting field.
+            Defaults to "task".
+        :param sorters: Model sorting buckets.
+            Defaults to None which results in empty list.
         """
         super().__init__(database, model_folder, cache_path, apis, [
-            "TEXT_GENERATION", "EMBEDDING", "LORA", "TEXT_CLASSIFICATION"] if tasks is None else tasks)
+            "TEXT_GENERATION", "EMBEDDING", "LORA", "TEXT_CLASSIFICATION"] if sorters is None else sorters)
 
     # Override
     def load_model_folder(self) -> None:
@@ -279,25 +288,26 @@ class LanguageModelHandler(GenericModelHandler):
         :param args: Arbitrary arguments.
         :param kwargs: Arbitrary keyword arguments.
         """
-        possible_tasks = file_system_utility.get_all_folders(
+        possible_sorters = file_system_utility.get_all_folders(
             self.model_folder)
-        self.tasks.extend(
-            [folder for folder in possible_tasks if folder not in self.tasks])
-        for task in self.tasks:
+        self.sorters.extend(
+            [folder for folder in possible_sorters if folder not in self.sorters])
+        for sorter in self.sorters:
             index_path = os.path.join(
-                self.model_folder, task, "model_index.json")
+                self.model_folder, sorter, "model_index.json")
             index = None
             if os.path.exists(index_path):
                 index = json_utility.load(index_path)
             for folder in (file_system_utility.get_all_folders(
-                    os.path.join(self.model_folder, task), include_root=False)):
+                    os.path.join(self.model_folder, sorter), include_root=False)):
                 if not self.database.get_objects_by_filtermasks(
                     "model",
-                    [FilterMask([["path", "==", folder], ["task", "==", task]])]
+                    [FilterMask([["path", "==", folder], [
+                                self.sorting_field, "==", sorter]])]
                 ):
                     self.database.post_object("model", {
                         "path": folder,
-                        "task": task
+                        self.sorting_field: sorter
                     } if index is None or folder not in index else index[folder])
 
     # Override
@@ -315,21 +325,25 @@ class DiffusionModelHandler(GenericModelHandler):
     Class, representing Model Handler for diffusion models.
     """
 
-    def __init__(self, database: ModelDatabase, model_folder: str, cache_path: str, apis: Dict[str, AbstractAPIWrapper] = None, tasks: List[str] = None) -> None:
+    def __init__(self, database: ModelDatabase, model_folder: str, cache_path: str, apis: Dict[str, AbstractAPIWrapper] = None, sorting_field: str = "type", sorters: List[str] = None) -> None:
         """
         Initiation method.
         :param database: Database for model data.
         :param model_folder: Model folder under which the handlers models are kept.
         :param cache_path: Cache path for handler.
         :param apis: API wrappers.
-        :param tasks: Model tasks.
+            Defaults to None which results in empty list.
+        :param sorting_field: Sorting field.
+            Defaults to "type".
+        :param sorters: Model sorting buckets.
+            Defaults to buckets, derived from standard stable diffusion artifacts.
         """
         super().__init__(database, model_folder, cache_path, apis, ["BLIP", "BSRGAN", "CHECKPOINTS", "CODEFORMER",
                                                                     "CONTROL_NET", "DEEPBOORU", "EMBEDDINGS", "ESRGAN",
                                                                     "GFPGAN", "HYPERNETWORKS", "KARLO", "LDSR", "LORA",
                                                                     "LYCORIS", "POSES", "REAL_ESRGAN", "SCUNET",
                                                                     "STABLE_DIFFUSION", "SWINIR", "TEXTUAL_INVERSION",
-                                                                    "TORCH_DEEPDANBOORU", "VAE", "WILDCARDS"] if tasks is None else tasks)
+                                                                    "TORCH_DEEPDANBOORU", "VAE", "WILDCARDS"] if sorters is None else sorters)
 
     # Override
     def load_model_folder(self) -> None:
@@ -338,25 +352,26 @@ class DiffusionModelHandler(GenericModelHandler):
         :param args: Arbitrary arguments.
         :param kwargs: Arbitrary keyword arguments.
         """
-        possible_tasks = file_system_utility.get_all_folders(
+        possible_sorters = file_system_utility.get_all_folders(
             self.model_folder)
-        self.tasks.extend(
-            [folder for folder in possible_tasks if folder not in self.tasks])
-        for task in self.tasks:
+        self.sorters.extend(
+            [folder for folder in possible_sorters if folder not in self.sorters])
+        for sorter in self.sorters:
             index_path = os.path.join(
-                self.model_folder, task, "model_index.json")
+                self.model_folder, sorter, "model_index.json")
             index = None
             if os.path.exists(index_path):
                 index = json_utility.load(index_path)
             for folder in (file_system_utility.get_all_folders(
-                    os.path.join(self.model_folder, task), include_root=False)):
+                    os.path.join(self.model_folder, sorter), include_root=False)):
                 if not self.database.get_objects_by_filtermasks(
                     "model",
-                    [FilterMask([["path", "==", folder], ["task", "==", task]])]
+                    [FilterMask([["path", "==", folder], [
+                                self.st, "==", sorter]])]
                 ):
                     self.database.post_object("model", {
                         "path": folder,
-                        "task": task
+                        self.sorting_field: sorter
                     } if index is None or folder not in index else index[folder])
 
     # Override
