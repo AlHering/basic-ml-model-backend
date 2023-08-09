@@ -219,11 +219,11 @@ class GenericModelHandler(abc.ABC):
         :return: List of model entries.
         """
         return self.apis[target_api_wrapper].scrape_available_targets(
-            "model", 
+            "model",
             callback=self.get_scraping_callback(
-                target_api_wrapper, 
-                "model") 
-                if callback is None else callback)
+                target_api_wrapper,
+                "model")
+            if callback is None else callback)
 
     def scrape_available_modelversions(self, target_api_wrapper: str, target_model_id: int = None, callback: Any = None) -> List[dict]:
         """
@@ -240,11 +240,11 @@ class GenericModelHandler(abc.ABC):
                 "model", target_model_id)
         return self.apis[target_api_wrapper].scrape_available_targets(
             "modelversion",
-            model= target_model
+            model=target_model,
             callback=self.get_scraping_callback(
-                target_api_wrapper, 
-                "modelversion") 
-                if callback is None else callback)
+                target_api_wrapper,
+                "modelversion")
+            if callback is None else callback)
 
     def patch_object_from_metadata(self, target_type: str, target_id: int, source: str, metadata: dict) -> None:
         """
@@ -397,12 +397,15 @@ class DiffusionModelHandler(GenericModelHandler):
                 if not failed:
                     try:
                         obj = self.database.get_objects_by_filtermasks(
-                                target_type, [FilterMask([["url", "==", normalized_data["url"]]])]
-                            )
+                            target_type, [FilterMask(
+                                [["url", "==", normalized_data["url"]]])]
+                        )
                         if obj:
-                            self.database.patch_object(target_type, obj[0].id, **normalized_data)
+                            self.database.patch_object(
+                                target_type, obj[0].id, **normalized_data)
                         else:
-                            self.database.post_object(target_type, **normalized_data)
+                            self.database.post_object(
+                                target_type, **normalized_data)
                     except Exception as ex:
                         failed = True
                         exction_data = {
@@ -411,11 +414,11 @@ class DiffusionModelHandler(GenericModelHandler):
                         }
                 if failed:
                     self.database.post_object(
-                        "scraping_fail", 
-                        url=normalized_data.get("url"), 
-                        source=api_wrapper, 
+                        "scraping_fail",
+                        url=normalized_data.get("url"),
+                        source=api_wrapper,
                         fetched_data=entry,
-                        normalized_data=normalized_data, 
+                        normalized_data=normalized_data,
                         exception_data=exction_data)
         return callback
 
