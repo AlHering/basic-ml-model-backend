@@ -8,11 +8,13 @@
 import os
 from typing import Any, Optional, List, Tuple, Dict
 import abc
+import traceback
 from src.configuration import configuration as cfg
 from src.utility.bronze import json_utility, hashing_utility, dictionary_utility
 from src.utility.silver import file_system_utility
 from src.utility.gold.filter_mask import FilterMask
 from src.model.model_control.api_wrappers import AbstractAPIWrapper
+import sqlalchemy
 from src.model.model_control.model_database import ModelDatabase
 
 
@@ -208,26 +210,41 @@ class GenericModelHandler(abc.ABC):
             if self.apis[wrapper].validate_url_responsiblity(url):
                 return wrapper
 
-    def scrape_available_models(self, target_api_wrapper: str) -> List[dict]:
+    def scrape_available_models(self, target_api_wrapper: str, callback: Any = None) -> List[dict]:
         """
         Method for scraping available models.
         :param target_api_wrapper: Target API wrapper.
+        :param callback: Callback to pass scraped entry batches through.
+            If a callback is given, the entries are usually not accumulated for the final return.
         :return: List of model entries.
         """
-        return self.apis[target_api_wrapper].scrape_available_targets("model")
+        return self.apis[target_api_wrapper].scrape_available_targets(
+            "model", 
+            callback=self.get_scraping_callback(
+                target_api_wrapper, 
+                "model") 
+                if callback is None else callback)
 
-    def scrape_available_modelversions(self, target_api_wrapper: str, target_model_id: int = None) -> List[dict]:
+    def scrape_available_modelversions(self, target_api_wrapper: str, target_model_id: int = None, callback: Any = None) -> List[dict]:
         """
         Method for scraping available model versions.
         :param target_api_wrapper: Target API wrapper.
         :param target_model_id: Model ID constraint for scraping model versions.
+        :param callback: Callback to pass scraped entry batches through.
+            If a callback is given, the entries are usually not accumulated for the final return.
         :return: List of model version entries.
         """
         target_model = None
         if target_model_id is not None:
             target_model = self.database.get_object_by_id(
                 "model", target_model_id)
-        return self.apis[target_api_wrapper].scrape_available_targets("modelversion", model=target_model)
+        return self.apis[target_api_wrapper].scrape_available_targets(
+            "modelversion",
+            model= target_model
+            callback=self.get_scraping_callback(
+                target_api_wrapper, 
+                "modelversion") 
+                if callback is None else callback)
 
     def patch_object_from_metadata(self, target_type: str, target_id: int, source: str, metadata: dict) -> None:
         """
@@ -240,6 +257,16 @@ class GenericModelHandler(abc.ABC):
         normalized_data = self.apis[source].normalize_metadata(
             target_type, metadata)
         self.database.patch_object(target_type, target_id, **normalized_data)
+
+    @abc.abstractmethod
+    def get_scraping_callback(self, api_wrapper: str, target_type: str) -> Optional[Any]:
+        """
+        Abstract method for acquiring a callback method.
+        :param api_wrapper: API wrapper name.
+        :param target_type: Target object type.
+        :return: Callback function if existing, else None.
+        """
+        pass
 
     @abc.abstractmethod
     def load_model_folder(self, *args: Optional[List], **kwargs: Optional[dict]) -> None:
@@ -344,6 +371,53 @@ class DiffusionModelHandler(GenericModelHandler):
                                                                                    "LYCORIS", "POSES", "REAL_ESRGAN", "SCUNET",
                                                                                    "STABLE_DIFFUSION", "SWINIR", "TEXTUAL_INVERSION",
                                                                                    "TORCH_DEEPDANBOORU", "VAE", "WILDCARDS"] if sorters is None else sorters)
+
+    def get_scraping_callback(self, api_wrapper: str, target_type: str) -> Optional[Any]:
+        """
+        Method for acquiring a callback method.
+        :param api_wrapper: API wrapper name.
+        :param target_type: Target object type.
+        :return: Callback function if existing, else None.
+        """
+        def callback(entries: List[Any]) -> None:
+            for entry in entries:
+                failed = False
+                exction_data = None
+                normalized_data = {}
+                try:
+                    normalized_data = self.apis[api_wrapper].normalize_metadata(
+                        target_type, entry
+                    )
+                except Exception as ex:
+                    failed = True
+                    exction_data = {
+                        "exception": ex,
+                        "traceback": traceback.format_exc()
+                    }
+                if not failed:
+                    try:
+                        obj = self.database.get_objects_by_filtermasks(
+                                target_type, [FilterMask([["url", "==", normalized_data["url"]]])]
+                            )
+                        if obj:
+                            self.database.patch_object(target_type, obj[0].id, **normalized_data)
+                        else:
+                            self.database.post_object(target_type, **normalized_data)
+                    except Exception as ex:
+                        failed = True
+                        exction_data = {
+                            "exception": ex,
+                            "traceback": traceback.format_exc()
+                        }
+                if failed:
+                    self.database.post_object(
+                        "scraping_fail", 
+                        url=normalized_data.get("url"), 
+                        source=api_wrapper, 
+                        fetched_data=entry,
+                        normalized_data=normalized_data, 
+                        exception_data=exction_data)
+        return callback
 
     # Override
     def load_model_folder(self) -> None:
