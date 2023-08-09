@@ -49,6 +49,13 @@ class LOGGER_REPLACEMENT(object):
         """
         print(f"[WARNING] {text}")
 
+    def warn(self, text: str) -> None:
+        """
+        Method replacement for logging.
+        :param text: Text to log.
+        """
+        print(f"[WARNING] {text}")
+
 
 LOGGER = LOGGER_REPLACEMENT()
 # LOGGER = logging.Logger("LMBACKEND")
