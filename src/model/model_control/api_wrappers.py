@@ -178,25 +178,48 @@ class CivitaiAPIWrapper(AbstractAPIWrapper):
         :param kwargs: Arbitrary keyword arguments.
             'callback': A callback for adding batches of scraping results while scraping process runs.
                 If a callback for adding results is given, this method will return an empty list.
+            'model': A target model for constraining target model versions to be scraped.
         :return: List of entries of given target type.
         """
         result = []
         callback = kwargs.get("callback")
+        if callback is None:
+            def callback(x: Any) -> None: result.extend(
+                x) if isinstance(x, list) else result.append(x)
         if target_type == "model":
-            next_url = self.model_api_endpoint
-            while next_url:
-                sleep(self.wait)
-                data = self.safely_fetch_api_data(next_url)
-                if data:
-                    metadata = data["metadata"]
-                    next_url = metadata.get("nextPage")
-                    if next_url:
-                        next_url += "&limit=100"
-                    if callback is None:
-                        result.extend(data["items"])
-                    else:
-                        callback(data["items"])
-        return result if callback is None else []
+            self.collect_models_via_api(callback)
+        elif target_type == "modelversion":
+            target_model = kwargs.get("model")
+            if target_model is not None:
+                metadata = self.safely_fetch_api_data(
+                    target_model.url) if target_model.metadata is None else target_model.metadata
+                if metadata is not None:
+                    callback(metadata["modelVersions"])
+            else:
+                def modelversion_callback_gateway(x: Any) -> None:
+                    if not isinstance(x, list):
+                        x = [x]
+                    for entry in x:
+                        callback(entry["modelVersions"])
+                self.collect_models_via_api(modelversion_callback_gateway)
+        return result
+
+    def collect_models_via_api(self, callback: Any) -> None:
+        """
+        Method for collecting model data via api.
+        :param callback: Callback to call with collected model data batches.
+        """
+        next_url = self.model_api_endpoint
+        while next_url:
+            sleep(self.wait)
+            data = self.safely_fetch_api_data(next_url)
+            next_url = False
+            if data:
+                metadata = data["metadata"]
+                next_url = metadata.get("nextPage")
+                if next_url:
+                    next_url += "&limit=100"
+                callback(data["items"])
 
     def get_api_url(self, target_type: str, target_object: Any, **kwargs: Optional[dict]) -> Optional[str]:
         """
