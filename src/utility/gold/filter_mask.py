@@ -82,12 +82,13 @@ class FilterMask(object):
     "OR"-Logic can be implemented, by creating different FilterMasks and wrapping their checks into an any()-function.
     """
 
-    def __init__(self, expressions: List[list], operator_dictionary: dict = CMD, deep: bool = False,
+    def __init__(self, expressions: List[list], operator_dictionary: dict = None, deep: bool = False,
                  relative: bool = False, reference: Any = None) -> None:
         """
         Initiation method for FilterMasks objects.
         :param expressions: List of expressions.
         :param operator_dictionary: Operator dictionary to initiate FilterMasks with.
+            Defaults to None in which case the default utility comparison dictionary is used.
         :param deep: Flag, declaring whether filters are deep. Defaults to False. Examples:
             - Flat filter expression = ["key", "operator", "value"]
             - Deep filter expression = [["key", "nested key"], "operator", "value"]
@@ -99,7 +100,7 @@ class FilterMask(object):
         """
         self.expressions = []
         self.operators = set()
-        self.operator_dictionary = {}
+        self.operator_dictionary = CMD if operator_dictionary is None else operator_dictionary
 
         self.deep = deep
         self.relative = relative
