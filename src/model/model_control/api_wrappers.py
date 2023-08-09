@@ -294,8 +294,7 @@ class CivitaiAPIWrapper(AbstractAPIWrapper):
                 "meta_data": copy.deepcopy(metadata),
                 "url": f"https://civitai.com/api/v1/models/{metadata['id']}",
                 "source": self.get_source_name()
-            }["id", "path", "name", "basemodel", "type", "format", "url", "sha256",
-                                    "meta_data", "created", "updated", "inactive", "model_id"]
+            }
         elif target_type == "modelversion":
             normalized = {
                 "name": metadata["name"],
