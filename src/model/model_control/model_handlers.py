@@ -131,7 +131,10 @@ class GenericModelHandler(abc.ABC):
             obj = self.database.get_object_by_id(target_type, target_id)
 
         if obj is not None and obj.url is not None:
-            wrapper = self.get_api_wrapper_for_url(obj.url)
+            if obj.source is not None:
+                wrapper = self.apis.get(obj.source)
+            if wrapper is None:
+                wrapper = self.get_api_wrapper_for_url(obj.url)
 
         return obj, wrapper
 
