@@ -250,9 +250,19 @@ class CivitaiAPIWrapper(AbstractAPIWrapper):
         """
         normalized = {}
         if target_type == "model":
-            pass
+            normalized = {
+                "name": metadata["name"],
+                "type": metadata["type"].upper(),
+                "architecture": "stablediffusion",
+                "meta_data": copy.deepcopy(metadata)
+            }["id", "path", "name", "basemodel", "type", "format", "url", "sha256",
+                                    "meta_data", "created", "updated", "inactive", "model_id"]
         elif target_type == "modelversion":
-            pass
+            normalized = {
+                "name": metadata["name"],
+                "basemodel": metadata["baseModel"],
+                "meta_data": copy.deepcopy(metadata)
+            }
         return normalized if normalized else metadata
 
     def download_model(self, model: Any, path: str, **kwargs: Optional[dict]) -> None:
