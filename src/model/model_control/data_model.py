@@ -36,9 +36,11 @@ def populate_data_instrastructure(engine: Engine, schema: str, model: dict) -> N
         task = Column(String,
                       comment="Task of the model.")
         architecture = Column(String,
-                              comment="Architecture/basemodel of the model.")
+                              comment="Architecture of the model.")
         url = Column(String,
                      comment="URL for the model.")
+        source = Column(String,
+                        comment="Main metadata source for the model.")
         meta_data = Column(JSON,
                            comment="Metadata of the model.")
         created = Column(DateTime, server_default=func.now(),
@@ -66,6 +68,8 @@ def populate_data_instrastructure(engine: Engine, schema: str, model: dict) -> N
                     comment="ID of the modelversion.")
         path = Column(String, nullable=False,
                       comment="Relative path of the modelversion.")
+        basemodel = Column(String,
+                           comment="Basemodel of the model.")
         format = Column(String, nullable=False,
                         comment="Format of the modelversion.")
         url = Column(String,
