@@ -216,7 +216,7 @@ class CivitaiAPIWrapper(AbstractAPIWrapper):
             if isinstance(data, dict):
                 metadata = data["metadata"]
                 next_url = metadata.get("nextPage")
-                if next_url:
+                if next_url and "limit=" not in next_url:
                     next_url += "&limit=100"
                 callback(data["items"])
             else:
