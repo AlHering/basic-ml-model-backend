@@ -240,11 +240,10 @@ class CivitaiAPIWrapper(AbstractAPIWrapper):
             self._logger.warn(f"Metadata response could not be deserialized.")
             return {}
 
-    def normalize_metadata(self, target_type: str, target_object: Any, metadata: dict, **kwargs: Optional[dict]) -> dict:
+    def normalize_metadata(self, target_type: str, metadata: dict, **kwargs: Optional[dict]) -> dict:
         """
         Abstract method for normalizing metadata.
         :param target_type: Type of target object.
-        :param target_object: Target object.
         :param metadata: Metadata.
         :param kwargs: Arbitrary keyword arguments.
         :return: Normalized metadata.

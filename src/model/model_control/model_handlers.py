@@ -232,9 +232,8 @@ class GenericModelHandler(abc.ABC):
         :param source: Source / API wrapper name.
         :param metadata: Metadata.
         """
-        obj = self.database.get_object_by_id(target_type, target_id)
         normalized_data = self.apis[source].normalize_metadata(
-            target_type, obj, metadata)
+            target_type, metadata)
         self.database.patch_object(target_type, target_id, **normalized_data)
 
     @abc.abstractmethod
