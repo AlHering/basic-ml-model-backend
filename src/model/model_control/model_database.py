@@ -7,6 +7,7 @@
 """
 from typing import Any, Optional, List
 from src.utility.bronze import sqlalchemy_utility
+from datetime import datetime as dt
 from sqlalchemy.ext.automap import automap_base
 from src.model.model_control.data_model import populate_data_instrastructure
 from src.utility.gold.filter_mask import FilterMask
@@ -144,19 +145,22 @@ class ModelDatabase(object):
                         self.primary_keys[object_type]) == object_id
             ).first()
             if obj:
+                if hasattr(obj, "updated"):
+                    obj.updated = dt.now()
                 for attribute in object_attributes:
                     setattr(obj, attribute, object_attributes[attribute])
+                session.add(obj)
                 session.commit()
                 result = getattr(obj, self.primary_keys[object_type])
         return result
 
-    def delete_object(self, object_type: str, object_id: Any) -> Optional[Any]:
+    def delete_object(self, object_type: str, object_id: Any, force: bool = False) -> Optional[Any]:
         """
         Method for deleting an object.
         :param object_type: Target object type.
         :param object_id: Target ID.
-        :param object_attributes: Object attributes.
-        :return: Object ID of patched object, if deletion was successful.
+        :param force: Force deletion of the object instead of setting inactivity flag.
+        :return: Object ID of deleted object, if deletion was successful.
         """
         result = None
         with self.session_factory() as session:
@@ -165,7 +169,13 @@ class ModelDatabase(object):
                         self.primary_keys[object_type]) == object_id
             ).first()
             if obj:
-                session.delete(obj)
+                if hasattr(obj, "inanctive") and not force:
+                    if hasattr(obj, "updated"):
+                        obj.updated = dt.now()
+                    obj.inactive = True
+                    session.add(obj)
+                else:
+                    session.delete(obj)
                 session.commit()
                 result = getattr(obj, self.primary_keys[object_type])
         return result
