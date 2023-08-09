@@ -62,6 +62,13 @@ class GenericModelHandler(abc.ABC):
         self._logger.log(f"Exporting cache to '{export_path}'...")
         json_utility.save(self._cache, export_path)
 
+    def add_api_wrapper(self, wrapper: AbstractAPIWrapper) -> None:
+        """
+        Method for adding API wrapper.
+        :param wrapper: API wrapper to add.
+        """
+        self.apis[wrapper.get_source_name()] = wrapper
+
     def get_unlinked_models(self, task: str = None) -> List[Any]:
         """
         Method for acquiring unlinked models.
@@ -142,7 +149,8 @@ class GenericModelHandler(abc.ABC):
         for api_wrapper in wrapper_options:
             result = self.apis[api_wrapper].get_api_url(target_type, target_id)
             if result is not None:
-                self.database.patch_object(target_type, target_id, url=result)
+                self.database.patch_object(
+                    target_type, target_id, url=result, source=api_wrapper)
                 break
 
     def update_metadata(self, target_type: str, target_id: int) -> None:
