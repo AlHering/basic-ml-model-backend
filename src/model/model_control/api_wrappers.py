@@ -211,7 +211,7 @@ class CivitaiAPIWrapper(AbstractAPIWrapper):
         next_url = self.model_api_endpoint
         while next_url:
             sleep(self.wait)
-            data = self.safely_fetch_api_data(next_url)
+            data = self.safely_fetch_api_data(next_url, current_try=1)
             next_url = False
             if isinstance(data, dict):
                 metadata = data["metadata"]
@@ -244,10 +244,14 @@ class CivitaiAPIWrapper(AbstractAPIWrapper):
         """
         return self.safely_fetch_api_data(target_object.url)
 
-    def safely_fetch_api_data(self, url: str) -> dict:
+    def safely_fetch_api_data(self, url: str, current_try: int = 3, max_tries: int = 3) -> dict:
         """
         Method for fetching API data.
         :param url: Target URL.
+        :param current_try: Current try.
+            Defaults to 3, which results in a single fetching try with max_tries at 3.
+        :param max_tries: Maximum number of tries.
+            Defaults to 3.
         :return: Fetched data or empty dictionary.
         """
         self._logger.info(
@@ -257,13 +261,17 @@ class CivitaiAPIWrapper(AbstractAPIWrapper):
         try:
             data = json.loads(resp.content)
             if data is not None and not "error" in data:
-                self._logger.info(f"Fetching metadata was successful.")
+                self._logger.info(f"Fetching content was successful.")
                 return data
             else:
                 self._logger.warn(f"Fetching metadata failed.")
         except json.JSONDecodeError:
-            self._logger.warn(f"Metadata response could not be deserialized.")
-            return {}
+            self._logger.warn(f"Response content could not be deserialized.")
+            if current_try < 3:
+                sleep(4.0)
+                return self.safely_fetch_api_data(url, current_try+1)
+            else:
+                return {}
 
     def normalize_metadata(self, target_type: str, metadata: dict, **kwargs: Optional[dict]) -> dict:
         """
