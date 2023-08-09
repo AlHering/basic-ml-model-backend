@@ -100,13 +100,13 @@ class FilterMask(object):
         """
         self.expressions = []
         self.operators = set()
-        self.operator_dictionary = CMD if operator_dictionary is None else operator_dictionary
+        self.operator_dictionary = {}
 
         self.deep = deep
         self.relative = relative
         self.reference = reference
-        self.add_filter_expressions(expressions)
         self.set_operator_dictionary(operator_dictionary)
+        self.add_filter_expressions(expressions)
 
     def add_filter_expressions(self, expressions: list) -> None:
         """
