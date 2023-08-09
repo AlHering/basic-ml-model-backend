@@ -41,7 +41,7 @@ def populate_data_instrastructure(engine: Engine, schema: str, model: dict) -> N
                       comment="Type of the model.")
         architecture = Column(String,
                               comment="Architecture of the model.")
-        url = Column(String,
+        url = Column(String, unique=True,
                      comment="URL for the model.")
         source = Column(String,
                         comment="Main metadata source for the model.")
@@ -80,7 +80,7 @@ def populate_data_instrastructure(engine: Engine, schema: str, model: dict) -> N
                       comment="Type of the modelversion.")
         format = Column(String, nullable=False,
                         comment="Format of the modelversion.")
-        url = Column(String,
+        url = Column(String, unique=True,
                      comment="URL for the modelversion.")
         sha256 = Column(Text,
                         comment="SHA256 hash for the modelversion.")
