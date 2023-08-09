@@ -33,6 +33,8 @@ def populate_data_instrastructure(engine: Engine, schema: str, model: dict) -> N
                     comment="ID of the model.")
         path = Column(String,
                       comment="Path of the model folder.")
+        name = Column(String,
+                      comment="Name of the model.")
         task = Column(String,
                       comment="Task of the model.")
         type = Column(String,
@@ -68,8 +70,10 @@ def populate_data_instrastructure(engine: Engine, schema: str, model: dict) -> N
 
         id = Column(Integer, primary_key=True, unique=True, nullable=False, autoincrement=True,
                     comment="ID of the modelversion.")
-        path = Column(String, nullable=False,
+        path = Column(String,
                       comment="Relative path of the modelversion.")
+        name = Column(String,
+                      comment="Name of the modelversion.")
         basemodel = Column(String,
                            comment="Basemodel of the modelversion.")
         type = Column(String,
