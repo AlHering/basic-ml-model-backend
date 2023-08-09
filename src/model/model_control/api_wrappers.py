@@ -283,6 +283,8 @@ class CivitaiAPIWrapper(AbstractAPIWrapper):
                     "hypernetwork": "image_generation_guidance",
                     "aestheticgradient": "image_generation_guidance",
                     "lora": "image_generation_guidance",
+                    "locon": "image_generation_guidance",
+                    "loha": "image_generation_guidance",
                     "embedding": "image_generation_guidance",
                     "lycoris": "image_generation_guidance",
                     "vae": "image_generation_guidance",
