@@ -82,6 +82,8 @@ def populate_data_instrastructure(engine: Engine, schema: str, model: dict) -> N
                         comment="Format of the modelversion.")
         url = Column(String, unique=True,
                      comment="URL for the modelversion.")
+        source = Column(String,
+                        comment="Main metadata source for the modelversion.")
         sha256 = Column(Text,
                         comment="SHA256 hash for the modelversion.")
         meta_data = Column(JSON,
@@ -152,6 +154,8 @@ def populate_data_instrastructure(engine: Engine, schema: str, model: dict) -> N
                       comment="Type of the asset.")
         url = Column(String,
                      comment="URL for the asset.")
+        source = Column(String,
+                        comment="Main metadata source for the asset.")
         sha256 = Column(Text,
                         comment="SHA256 hash for the asset.")
         meta_data = Column(JSON,
@@ -171,6 +175,31 @@ def populate_data_instrastructure(engine: Engine, schema: str, model: dict) -> N
         modelversion = relationship(
             "Modelversion", back_populates="assets")
 
+    class ScrapingFail(base):
+        """
+        ScrapingFail class, representing an scraping fail, connected to a machine learning model or model version.
+        """
+        __tablename__ = f"{schema}scraping_fail"
+        __table_args__ = {
+            "comment": "Scraping fail table.", "extend_existing": True}
+
+        id = Column(Integer, primary_key=True, unique=True, nullable=False, autoincrement=True,
+                    comment="ID of the scraping fail.")
+        url = Column(String,
+                     comment="URL for the scraping fail.")
+        source = Column(String, nullable=False,
+                        comment="Source, under which the scraping fail appeared.")
+        fetched_data = Column(JSON,
+                              comment="Fetched data.")
+        normalized_data = Column(JSON,
+                                 comment="Normalized data.")
+        exception_data = Column(JSON,
+                                comment="Exception data.")
+        created = Column(DateTime, server_default=func.now(),
+                         comment="Timestamp of creation.")
+        inactive = Column(Boolean, nullable=False, default=False,
+                          comment="Inactivity flag.")
+
     class Log(base):
         """
         Log class, representing an log entry, connected to a machine learning model or model version interaction.
@@ -189,7 +218,7 @@ def populate_data_instrastructure(engine: Engine, schema: str, model: dict) -> N
         responded = Column(DateTime, server_default=func.now(), server_onupdate=func.now(),
                            comment="Timestamp of reponse transmission.")
 
-    for dataclass in [Model, Modelversion, Modelinstance, Asset, Log]:
+    for dataclass in [Model, Modelversion, Modelinstance, Asset, ScrapingFail, Log]:
         model[dataclass.__tablename__.replace(schema, "")] = dataclass
 
     base.metadata.create_all(bind=engine)

@@ -167,12 +167,14 @@ class DataModelTest(unittest.TestCase):
                                 {"my_request_key": "my_request_value"}}
         cls.model_columns = ["id", "path", "name", "task", "type", "architecture",
                              "url", "source", "meta_data", "created", "updated", "inactive"]
-        cls.modelversion_columns = ["id", "path", "name", "basemodel", "type", "format", "url", "sha256",
+        cls.modelversion_columns = ["id", "path", "name", "basemodel", "type", "format", "url", "source", "sha256",
                                     "meta_data", "created", "updated", "inactive", "model_id"]
         cls.modelinstance_columns = ["uuid", "backend", "loader", "loader_kwargs", "gateway",
                                      "meta_data", "created", "updated", "inactive", "model_id", "modelversion_id"]
         cls.asset_columns = ["id", "path", "type", "url", "sha256",
                              "meta_data", "created", "updated", "inactive", "model_id", "modelversion_id"]
+        cls.scraping_fails_columns = ["id", "url", "source", "fetched_data", "normalized_data",
+                                      "exception_data", "created", "inactive"]
         cls.log_columns = ["id", "request",
                            "response", "requested", "responded"]
 
