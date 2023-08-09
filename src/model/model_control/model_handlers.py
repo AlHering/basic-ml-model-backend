@@ -315,16 +315,20 @@ class LanguageModelHandler(GenericModelHandler):
         :param args: Arbitrary arguments.
         :param kwargs: Arbitrary keyword arguments.
         """
+        self._logger.info(f"Loading model folder '{self.model_folder}'...")
         possible_sorters = file_system_utility.get_all_folders(
             self.model_folder)
         self.sorters.extend(
             [folder for folder in possible_sorters if folder not in self.sorters])
         for sorter in self.sorters:
+            self._logger.info(f"Checking on '{sorter}'...")
             index_path = os.path.join(
                 self.model_folder, sorter, "model_index.json")
             index = None
             if os.path.exists(index_path):
                 index = json_utility.load(index_path)
+            else:
+                self._logger.warning(f"Not index found under '{index_path}'.")
             for folder in (file_system_utility.get_all_folders(
                     os.path.join(self.model_folder, sorter), include_root=False)):
                 if not self.database.get_objects_by_filtermasks(
@@ -429,22 +433,26 @@ class DiffusionModelHandler(GenericModelHandler):
         :param args: Arbitrary arguments.
         :param kwargs: Arbitrary keyword arguments.
         """
+        self._logger.info(f"Loading model folder '{self.model_folder}'...")
         possible_sorters = file_system_utility.get_all_folders(
             self.model_folder)
         self.sorters.extend(
             [folder for folder in possible_sorters if folder not in self.sorters])
         for sorter in self.sorters:
+            self._logger.info(f"Checking on '{sorter}'...")
             index_path = os.path.join(
                 self.model_folder, sorter, "model_index.json")
             index = None
             if os.path.exists(index_path):
                 index = json_utility.load(index_path)
+            else:
+                self._logger.warning(f"Not index found under '{index_path}'.")
             for folder in (file_system_utility.get_all_folders(
                     os.path.join(self.model_folder, sorter), include_root=False)):
                 if not self.database.get_objects_by_filtermasks(
                     "model",
                     [FilterMask([["path", "==", folder], [
-                                self.st, "==", sorter]])]
+                                self.sorting_field, "==", sorter]])]
                 ):
                     self.database.post_object("model", {
                         "path": folder,
