@@ -17,7 +17,7 @@ from src.model.model_control.api_wrappers import CivitaiAPIWrapper
 RELIBERATE_MODEL_ID = 79754
 
 if __name__ == "__main__":
-    model_api_url_by_id = f"https://civitai.com/api/v1/model-versions"
+    model_api_url_by_id = f"https://civitai.com/api/v1/models/{RELIBERATE_MODEL_ID}"
 
     db = ModelDatabase(database_uri=None, schema="civitai", verbose=True)
     model_id = db.post_object("model",
@@ -35,5 +35,5 @@ if __name__ == "__main__":
         f"Fetch metadata ...")
     model = db.get_object_by_id("model", model_id)
     print(model)
-    json_utility.save(wrapper.collect_metadata(
-        "model", model), DEFAULT_DB_PATH + ".json")
+    json_utility.save(wrapper.safely_fetch_api_data(
+        model_api_url_by_id), DEFAULT_DB_PATH + ".json")
