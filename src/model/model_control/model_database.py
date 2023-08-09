@@ -8,7 +8,6 @@
 from typing import Any, Optional, List
 from src.utility.bronze import sqlalchemy_utility
 from datetime import datetime as dt
-from sqlalchemy.ext.automap import automap_base
 from src.model.model_control.data_model import populate_data_instrastructure
 from src.utility.gold.filter_mask import FilterMask
 from src.configuration import configuration as cfg
@@ -35,7 +34,7 @@ class ModelDatabase(object):
         self._logger = cfg.LOGGER
         self.verbose = verbose
         self._logger.info("Automapping existing structures")
-        self.base = automap_base()
+        self.base = sqlalchemy_utility.automap_base()
         self.engine = sqlalchemy_utility.get_engine(
             cfg.ENV.get("MODEL_DB", f"sqlite:///{DEFAULT_DB_PATH}") if database_uri is None else database_uri)
         self.base.prepare(autoload_with=self.engine)
@@ -58,6 +57,9 @@ class ModelDatabase(object):
             object_class: self.model[object_class].__mapper__.primary_key[0].name for object_class in self.model}
         if self.verbose:
             self._logger.info(f"Datamodel after addition: {self.model}")
+            for object_class in self.model:
+                self._logger.info(
+                    f"Object type '{object_class}' currently has {self.get_object_count_by_type(object_class)} registered entries.")
         self._logger.info("Creating new structures")
 
     """
@@ -81,6 +83,15 @@ class ModelDatabase(object):
     """
     Default object interaction.
     """
+
+    def get_object_count_by_type(self, object_type: str) -> int:
+        """
+        Method for acquiring object count.
+        :param object_type: Target object type.
+        :return: Number of objects.
+        """
+        return int(self.engine.connect().execute(sqlalchemy_utility.select(sqlalchemy_utility.func.count()).select_from(
+            self.model[object_type])).scalar())
 
     def get_objects_by_type(self, object_type: str) -> List[Any]:
         """
