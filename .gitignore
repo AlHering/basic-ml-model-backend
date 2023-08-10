@@ -159,9 +159,9 @@ cython_debug/
 
 # Custom additions
 data/
-docs/literature
-docs/analysis
-docs/todo
+docs/literature/
+docs/api_analysis/
+docs/todo/
 configuration/*.env
 machine_learning_models/LORAS/*
 machine_learning_models/MODELS/*
