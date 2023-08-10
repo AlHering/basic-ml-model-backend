@@ -106,11 +106,13 @@ def safely_request_page(url, tries: int = 5, delay: float = 2.0) -> requests.Res
     return resp
 
 
-def download_web_asset(asset_url: str, output_path: str) -> None:
+def download_web_asset(asset_url: str, output_path: str, add_extension: bool = False) -> None:
     """
     Function for downloading web asset.
     :param asset_url: Asset URL.
     :param output_path: Output path.
+    :param add_extension: Flag, declaring whether to fetch extension from header data and add to output path.
+        Defaults to False.
     """
     try:
         asset_head = requests.head(asset_url).headers
@@ -121,12 +123,15 @@ def download_web_asset(asset_url: str, output_path: str) -> None:
             asset_url, verify=False).headers
         asset = requests.get(
             asset_url, stream=True, verify=False)
+
     asset_content = asset.content
-    # main_type, sub_type = asset_head.get(
-    #     "Content-Type", "/").lower().split("/")
-    # asset_type = asset_head.get("Content-Type")
-    # asset_encoding = asset.apparent_encoding if hasattr(
-    #    asset, "apparent_encoding") else asset.encoding
-    # asset_extension = MEDIA_TYPES.get(
-    #    main_type, {}).get(sub_type, {}).get("extension")
+    if add_extension:
+        main_type, sub_type = asset_head.get(
+            "Content-Type", "/").lower().split("/")
+        # asset_type = asset_head.get("Content-Type")
+        # asset_encoding = asset.apparent_encoding if hasattr(
+        #    asset, "apparent_encoding") else asset.encoding
+        asset_extension = MEDIA_TYPES.get(
+            main_type, {}).get(sub_type, {}).get("extension", ".unkown")
+        output_path += asset_extension
     open(output_path, "wb").write(asset_content)
