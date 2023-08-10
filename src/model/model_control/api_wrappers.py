@@ -370,7 +370,7 @@ class HuggingfaceAPIWrapper(AbstractAPIWrapper):
         self.base_url = "https://huggingface.co/"
         self.api_base_url = f"{self.base_url}api"
         self.model_api_endpoint = f"{self.api_base_url}/models/"
-        self.wait = 1.0
+        self.wait = 3.0
 
     def get_source_name(self) -> str:
         """
@@ -439,7 +439,8 @@ class HuggingfaceAPIWrapper(AbstractAPIWrapper):
         Method for collecting model data via api.
         :param callback: Callback to call with collected model data batches.
         """
-        next_url = self.model_api_endpoint + "?limit=100&full=true&config=true"
+        next_url = self.model_api_endpoint + "?full=true&config=true"
+        page = 1
         fetched_last_url = False
         while next_url:
             sleep(self.wait)
@@ -448,12 +449,16 @@ class HuggingfaceAPIWrapper(AbstractAPIWrapper):
             next_url = False
             if isinstance(data, list):
                 if not fetched_last_url:
-                    next_url = header_data.get("link")[1:-1]
-                    next_url, rel = next_url.split('>; rel="')
-                    if rel == "last":
-                        fetched_last_url = True
-                    self._logger.info(
-                        f"Fetched next url: '{next_url}' with relation '{rel}'.")
+                    page += 1
+                    next_url = header_data.get("link", False)
+                    if next_url:
+                        next_url = next_url[1:-1]
+                        next_url, rel = next_url.split('>; rel="')
+                        if rel == "last":
+                            fetched_last_url = True
+                        self._logger.info(
+                            f"Fetched next url: '{next_url}' with relation '{rel}' as page {page}.")
+
                 callback(data)
             else:
                 self._logger.warning(
@@ -496,7 +501,8 @@ class HuggingfaceAPIWrapper(AbstractAPIWrapper):
         try:
             data = json.loads(resp.content)
             if data is not None and not "error" in data:
-                self._logger.info(f"Fetching content was successful.")
+                self._logger.info(
+                    f"Fetching content was successful with headers: {resp.headers}.")
                 return data, resp.headers if resp.headers else {}
             else:
                 self._logger.warn(f"Fetching metadata failed.")
