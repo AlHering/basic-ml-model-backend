@@ -21,8 +21,6 @@ from src.model.model_control.api_wrappers import HuggingfaceAPIWrapper
 if __name__ == "__main__":
     # if os.path.exists(DEFAULT_DB_PATH):
     #    os.remove(DEFAULT_DB_PATH)
-    DEFAULT_DB_PATH = DEFAULT_DB_PATH.replace(
-        "/model.db", "/huggingface_model.db")
     db = ModelDatabase(database_uri=None, schema="huggingface", verbose=True)
     wrapper = HuggingfaceAPIWrapper()
     handler = LanguageModelHandler(
