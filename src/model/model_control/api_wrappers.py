@@ -482,7 +482,7 @@ class HuggingfaceAPIWrapper(AbstractAPIWrapper):
         :param kwargs: Arbitrary keyword arguments.
         :return: Metadata for given model ID.
         """
-        return self.safely_fetch_api_data(target_object.url)
+        return self.safely_fetch_api_data(target_object.url)[0]
 
     def safely_fetch_api_data(self, url: str, current_try: int = 3, max_tries: int = 3) -> Tuple[dict]:
         """
