@@ -527,8 +527,8 @@ class HuggingfaceAPIWrapper(AbstractAPIWrapper):
             normalized = {
                 "name": metadata["id"],
                 "type": metadata.get("config", {}).get("model_type"),
-                "task": metadata["pipeline_tag"].lower().replace("-", "_"),
-                "architecture": metadata["library_name"],
+                "task": metadata.get("pipeline_tag", "").lower().replace("-", "_"),
+                "architecture": metadata.get("library_name"),
                 "meta_data": copy.deepcopy(metadata),
                 "url": f"{self.model_api_endpoint}{metadata['id']}",
                 "source": self.get_source_name()
@@ -552,7 +552,7 @@ class HuggingfaceAPIWrapper(AbstractAPIWrapper):
         """
         format = None
         for option in ["safetensors", "bin", "pt", "pth"]:
-            if any(file.get("rfilename", "").endswith("option") for file in metadata["siblings"]):
+            if any(file.get("rfilename", "").endswith("option") for file in metadata.get("siblings", [])):
                 format = option
                 break
         config = metadata.get("config", {})
