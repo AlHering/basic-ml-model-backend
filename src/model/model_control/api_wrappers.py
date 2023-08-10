@@ -523,6 +523,8 @@ class HuggingfaceAPIWrapper(AbstractAPIWrapper):
         :return: Normalized metadata.
         """
         normalized = {}
+        resp = requests.get(f"{self.base_url}{metadata['id']}")
+        metadata["modelcard"] = resp.text
         if target_type == "model":
             normalized = {
                 "name": metadata["id"],
@@ -542,6 +544,7 @@ class HuggingfaceAPIWrapper(AbstractAPIWrapper):
             }
             normalized.update(
                 self._extract_condense_modelversion_data(metadata))
+
         return normalized if normalized else metadata
 
     def _extract_condense_modelversion_data(self, metadata: dict) -> dict:
