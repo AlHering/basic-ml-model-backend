@@ -258,124 +258,6 @@ class GenericModelHandler(abc.ABC):
             target_type, metadata)
         self.database.patch_object(target_type, target_id, **normalized_data)
 
-    @abc.abstractmethod
-    def get_scraping_callback(self, api_wrapper: str, target_type: str) -> Optional[Any]:
-        """
-        Abstract method for acquiring a callback method.
-        :param api_wrapper: API wrapper name.
-        :param target_type: Target object type.
-        :return: Callback function if existing, else None.
-        """
-        pass
-
-    @abc.abstractmethod
-    def load_model_folder(self, *args: Optional[List], **kwargs: Optional[dict]) -> None:
-        """
-        Abstract method for loading model folder.
-        :param args: Arbitrary arguments.
-        :param kwargs: Arbitrary keyword arguments.
-        """
-        pass
-
-    @abc.abstractmethod
-    def move_model(self, *args: Optional[List], **kwargs: Optional[dict]) -> None:
-        """
-        Abstract method for moving local model and adjusting metadata.
-        :param args: Arbitrary arguments.
-        :param kwargs: Arbitrary keyword arguments.
-        """
-        pass
-
-
-class LanguageModelHandler(GenericModelHandler):
-    """
-    Class, representing Model Handler for language models.
-    """
-
-    def __init__(self, database: ModelDatabase, model_folder: str, cache_path: str, apis: Dict[str, AbstractAPIWrapper] = None, sorting_field: str = "task", sorters: List[str] = None) -> None:
-        """
-        Initiation method.
-        :param database: Database for model data.
-        :param model_folder: Model folder under which the handlers models are kept.
-        :param cache_path: Cache path for handler.
-        :param apis: API wrappers.
-            Defaults to None which results in empty list.
-        :param sorting_field: Sorting field.
-            Defaults to "task".
-        :param sorters: Model sorting buckets.
-            Defaults to None which results in empty list.
-        """
-        super().__init__(database, model_folder, cache_path, apis, sorting_field, [
-            "TEXT_GENERATION", "EMBEDDING", "LORA", "TEXT_CLASSIFICATION"] if sorters is None else sorters)
-
-    # Override
-    def load_model_folder(self) -> None:
-        """
-        Method for loading model folder.
-        :param args: Arbitrary arguments.
-        :param kwargs: Arbitrary keyword arguments.
-        """
-        self._logger.info(f"Loading model folder '{self.model_folder}'...")
-        possible_sorters = file_system_utility.get_all_folders(
-            self.model_folder)
-        self.sorters.extend(
-            [folder for folder in possible_sorters if folder not in self.sorters])
-        for sorter in self.sorters:
-            self._logger.info(f"Checking on '{sorter}'...")
-            index_path = os.path.join(
-                self.model_folder, sorter, "model_index.json")
-            index = None
-            if os.path.exists(index_path):
-                index = json_utility.load(index_path)
-            else:
-                self._logger.warning(f"Not index found under '{index_path}'.")
-            for folder in (file_system_utility.get_all_folders(
-                    os.path.join(self.model_folder, sorter), include_root=False)):
-                if not self.database.get_objects_by_filtermasks(
-                    "model",
-                    [FilterMask([["path", "==", folder], [
-                                self.sorting_field, "==", sorter]])]
-                ):
-                    self.database.post_object("model", {
-                        "path": folder,
-                        self.sorting_field: sorter
-                    } if index is None or folder not in index else index[folder])
-
-    # Override
-    def move_model(self, *args: Optional[List], **kwargs: Optional[dict]) -> None:
-        """
-        Abstract method for moving local model and adjusting metadata.
-        :param args: Arbitrary arguments.
-        :param kwargs: Arbitrary keyword arguments.
-        """
-        pass
-
-
-class DiffusionModelHandler(GenericModelHandler):
-    """
-    Class, representing Model Handler for diffusion models.
-    """
-
-    def __init__(self, database: ModelDatabase, model_folder: str, cache_path: str, apis: Dict[str, AbstractAPIWrapper] = None, sorting_field: str = "type", sorters: List[str] = None) -> None:
-        """
-        Initiation method.
-        :param database: Database for model data.
-        :param model_folder: Model folder under which the handlers models are kept.
-        :param cache_path: Cache path for handler.
-        :param apis: API wrappers.
-            Defaults to None which results in empty list.
-        :param sorting_field: Sorting field.
-            Defaults to "type".
-        :param sorters: Model sorting buckets.
-            Defaults to buckets, derived from standard stable diffusion artifacts.
-        """
-        super().__init__(database, model_folder, cache_path, apis, sorting_field, ["BLIP", "BSRGAN", "CHECKPOINTS", "CODEFORMER",
-                                                                                   "CONTROL_NET", "DEEPBOORU", "EMBEDDINGS", "ESRGAN",
-                                                                                   "GFPGAN", "HYPERNETWORKS", "KARLO", "LDSR", "LORA",
-                                                                                   "LYCORIS", "POSES", "REAL_ESRGAN", "SCUNET",
-                                                                                   "STABLE_DIFFUSION", "SWINIR", "TEXTUAL_INVERSION",
-                                                                                   "TORCH_DEEPDANBOORU", "VAE", "WILDCARDS"] if sorters is None else sorters)
-
     def get_scraping_callback(self, api_wrapper: str, target_type: str) -> Optional[Any]:
         """
         Method for acquiring a callback method.
@@ -426,7 +308,6 @@ class DiffusionModelHandler(GenericModelHandler):
                         exception_data=exction_data)
         return callback
 
-    # Override
     def load_model_folder(self) -> None:
         """
         Method for loading model folder.
@@ -458,6 +339,72 @@ class DiffusionModelHandler(GenericModelHandler):
                         "path": folder,
                         self.sorting_field: sorter
                     } if index is None or folder not in index else index[folder])
+
+    @abc.abstractmethod
+    def move_model(self, *args: Optional[List], **kwargs: Optional[dict]) -> None:
+        """
+        Abstract method for moving local model and adjusting metadata.
+        :param args: Arbitrary arguments.
+        :param kwargs: Arbitrary keyword arguments.
+        """
+        pass
+
+
+class LanguageModelHandler(GenericModelHandler):
+    """
+    Class, representing Model Handler for language models.
+    """
+
+    def __init__(self, database: ModelDatabase, model_folder: str, cache_path: str, apis: Dict[str, AbstractAPIWrapper] = None, sorting_field: str = "task", sorters: List[str] = None) -> None:
+        """
+        Initiation method.
+        :param database: Database for model data.
+        :param model_folder: Model folder under which the handlers models are kept.
+        :param cache_path: Cache path for handler.
+        :param apis: API wrappers.
+            Defaults to None which results in empty list.
+        :param sorting_field: Sorting field.
+            Defaults to "task".
+        :param sorters: Model sorting buckets.
+            Defaults to None which results in empty list.
+        """
+        super().__init__(database, model_folder, cache_path, apis, sorting_field, [
+            "TEXT_GENERATION", "EMBEDDING", "LORA", "TEXT_CLASSIFICATION"] if sorters is None else sorters)
+
+    # Override
+    def move_model(self, *args: Optional[List], **kwargs: Optional[dict]) -> None:
+        """
+        Abstract method for moving local model and adjusting metadata.
+        :param args: Arbitrary arguments.
+        :param kwargs: Arbitrary keyword arguments.
+        """
+        pass
+
+
+class DiffusionModelHandler(GenericModelHandler):
+    """
+    Class, representing Model Handler for diffusion models.
+    """
+
+    def __init__(self, database: ModelDatabase, model_folder: str, cache_path: str, apis: Dict[str, AbstractAPIWrapper] = None, sorting_field: str = "type", sorters: List[str] = None) -> None:
+        """
+        Initiation method.
+        :param database: Database for model data.
+        :param model_folder: Model folder under which the handlers models are kept.
+        :param cache_path: Cache path for handler.
+        :param apis: API wrappers.
+            Defaults to None which results in empty list.
+        :param sorting_field: Sorting field.
+            Defaults to "type".
+        :param sorters: Model sorting buckets.
+            Defaults to buckets, derived from standard stable diffusion artifacts.
+        """
+        super().__init__(database, model_folder, cache_path, apis, sorting_field, ["BLIP", "BSRGAN", "CHECKPOINTS", "CODEFORMER",
+                                                                                   "CONTROL_NET", "DEEPBOORU", "EMBEDDINGS", "ESRGAN",
+                                                                                   "GFPGAN", "HYPERNETWORKS", "KARLO", "LDSR", "LORA",
+                                                                                   "LYCORIS", "POSES", "REAL_ESRGAN", "SCUNET",
+                                                                                   "STABLE_DIFFUSION", "SWINIR", "TEXTUAL_INVERSION",
+                                                                                   "TORCH_DEEPDANBOORU", "VAE", "WILDCARDS"] if sorters is None else sorters)
 
     # Override
     def move_model(self, *args: Optional[List], **kwargs: Optional[dict]) -> None:
