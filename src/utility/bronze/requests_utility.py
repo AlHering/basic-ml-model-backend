@@ -5,9 +5,10 @@
 *            (c) 2020-2021 Alexander Hering        *
 ****************************************************
 """
+import os
 from time import sleep
 from typing import Union, List, Any, Optional
-
+from . import json_utility
 import requests
 from lxml import html
 
@@ -18,6 +19,14 @@ REQUEST_METHODS = {
     "PATCH": requests.patch,
     "DELETE": requests.delete
 }
+
+
+MEDIA_TYPES_PATH = os.path.abspath(os.path.join(
+    os.path.dirname(__file__), os.pardir, "data", "media_types.json"))
+if os.path.exists(MEDIA_TYPES_PATH):
+    MEDIA_TYPES = json_utility.load(MEDIA_TYPES_PATH)
+else:
+    MEDIA_TYPES = {}
 
 
 def get_page_content(url: str) -> html.HtmlElement:
@@ -95,3 +104,29 @@ def safely_request_page(url, tries: int = 5, delay: float = 2.0) -> requests.Res
         j += 1
         sleep(delay)
     return resp
+
+
+def download_web_asset(asset_url: str, output_path: str) -> None:
+    """
+    Function for downloading web asset.
+    :param asset_url: Asset URL.
+    :param output_path: Output path.
+    """
+    try:
+        asset_head = requests.head(asset_url).headers
+        asset = requests.get(
+            asset_url, stream=True)
+    except requests.exceptions.SSLError:
+        asset_head = requests.head(
+            asset_url, verify=False).headers
+        asset = requests.get(
+            asset_url, stream=True, verify=False)
+    asset_content = asset.content
+    # main_type, sub_type = asset_head.get(
+    #     "Content-Type", "/").lower().split("/")
+    # asset_type = asset_head.get("Content-Type")
+    # asset_encoding = asset.apparent_encoding if hasattr(
+    #    asset, "apparent_encoding") else asset.encoding
+    # asset_extension = MEDIA_TYPES.get(
+    #    main_type, {}).get(sub_type, {}).get("extension")
+    open(output_path, "wb").write(asset_content)
