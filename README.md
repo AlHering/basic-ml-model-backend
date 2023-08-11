@@ -1,5 +1,5 @@
 # Basic ML Model Backend
-Basic backend for handling ML-task, connected to resource-intensive models.
+Basic backend for handling ML-tasks, connected to resource-intensive models.
 Primarily meant for future experiments around abstraction/representation, interfaces and scalability.
 Secundarily meant for utility prototyping.
 
