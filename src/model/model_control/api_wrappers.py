@@ -393,7 +393,7 @@ class CivitaiAPIWrapper(AbstractAPIWrapper):
             json_utility.save(file, os.path.join(
                 path, f"mvf{file['id']}_metadata.json"))
             requests_utility.download_web_asset(file["downloadUrl"],
-                                                os.path.join(path, file["name"]))
+                                                os.path.join(path, file["name"]), headers=self.headers)
 
         if download_assets:
             self.download_assets(
@@ -416,7 +416,7 @@ class CivitaiAPIWrapper(AbstractAPIWrapper):
             json_utility.save(asset.metadata, os.path.join(
                 asset_path, f"a{asset.id}_metadata.json"))
             requests_utility.download_web_asset(
-                asset.url, os.path.join(asset_path, asset.url.split("/")[-1]))
+                asset.url, os.path.join(asset_path, asset.url.split("/")[-1]), headers=self.headers)
 
     def _create_default_model_folder(self, path: str) -> Tuple[str]:
         """
