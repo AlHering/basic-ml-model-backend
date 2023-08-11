@@ -1,5 +1,5 @@
-# Basic Language Model Backend
-Basic backend for handling language-model tasks.
+# Basic ML Model Backend
+Basic backend for handling ML-task, connected to resource-intensive models.
 Primarily meant for future experiments around abstraction/representation, interfaces and scalability.
 Secundarily meant for utility prototyping.
 
