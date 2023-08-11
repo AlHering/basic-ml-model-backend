@@ -13,7 +13,8 @@ from time import sleep
 from urllib.parse import urlparse
 import shutil
 from typing import Any, Optional, List, Tuple
-from src.utility.silver import image_utility, internet_utility
+from src.utility.bronze import time_utility, json_utility, requests_utility
+from src.utility.silver import image_utility, internet_utility, file_system_utility
 from src.configuration import configuration as cfg
 import abc
 
@@ -137,6 +138,7 @@ class CivitaiAPIWrapper(AbstractAPIWrapper):
         """
         self._logger = cfg.LOGGER
         self.authorization = cfg.ENV["CIVITAI_API_KEY"]
+        self.headers = {"Authorization": self.authorization}
         self.base_url = "https://civitai.com/"
         self.api_base_url = f"{self.base_url}api/v1"
         self.modelversion_api_endpoint = f"{self.api_base_url}/model-versions/"
@@ -257,8 +259,7 @@ class CivitaiAPIWrapper(AbstractAPIWrapper):
         """
         self._logger.info(
             f"Fetching data for '{url}'...")
-        resp = requests.get(url, headers={
-                            "Authorization": self.authorization})
+        resp = requests.get(url, headers=self.headers)
         try:
             data = json.loads(resp.content)
             if data is not None and not "error" in data:
@@ -325,35 +326,106 @@ class CivitaiAPIWrapper(AbstractAPIWrapper):
             }
         return normalized if normalized else metadata
 
-    def download_model(self, model: Any, path: str, **kwargs: Optional[dict]) -> None:
+    def download_model(self, model: Any, **kwargs: Optional[dict]) -> None:
         """
         Abstract method for downloading a model.
         :param model: Model object.
-        :param path: Absolute path to download model to.
         :param kwargs: Arbitrary keyword arguments.
+            "path": Path to use instead of model object path.
+            "download_assets": Flag, declaring whether to download assets for model.
         """
-        pass
+        path = kwargs.get("path", model.path)
+        download_assets = kwargs.get("download_assets", False)
+        _, backup_path = self._create_default_model_folder(path)
 
-    def download_modelversion(self, modelversion: Any, path: str, **kwargs: Optional[dict]) -> None:
+        for file in file_system_utility.get_all_files(path, include_root=False):
+            if file.startswith(f"m{model.id}_modelcard_"):
+                shutil.move(os.path.join(path, file),
+                            os.path.join(backup_path, file))
+        json_utility.save(model.metadata, os.path.join(
+            path, f"m{model.id}_metadata.json"))
+        resp = requests.get(
+            f"{self.base_url}/models/{model.metadata['id']}", headers=self.headers)
+        open(os.path.join(
+            path, f"m{model.id}_modelcard_{time_utility.get_timestamp()}.html"), "w").write(resp.text)
+
+        if download_assets:
+            # No direct assets for model
+            pass
+
+    def download_modelversion(self, modelversion: Any, **kwargs: Optional[dict]) -> None:
         """
         Abstract method for downloading a model.
         :param modelversion: Model version object.
-        :param path: Absolute path to download model version to.
         :param kwargs: Arbitrary keyword arguments.
+            "path": Path to use instead of model object path.
+            "download_assets": Flag, declaring whether to download assets for model.
+            "file_ids": List of files to download. If not given, the primary modelversion is downloaded.
         """
-        pass
+        path = kwargs.get("path", modelversion.model.path)
+        download_assets = kwargs.get("download_assets", False)
+        _, backup_path = self._create_default_model_folder(path)
 
-    def download_assets(self, target_type: str, target_object: Any, asset_type: str, path: str, **kwargs: Optional[dict]) -> List[dict]:
+        if "file_ids" in kwargs:
+            files = [file for file in modelversion.metadata["files"]
+                     if file["id"] in kwargs["file_ids"]]
+        else:
+            files = [file for file in modelversion.metadata["files"]
+                     if file.get("primary", False)]
+
+        for file in file_system_utility.get_all_files(path, include_root=False):
+            if file.startswith(f"mv{modelversion.id}_modelcard_"):
+                shutil.move(os.path.join(path, file),
+                            os.path.join(backup_path, file))
+            elif any(file == target_file["name"] for target_file in files):
+                backupped_file_path = os.path.join(backup_path, file)
+                if os.path.exists(backupped_file_path):
+                    os.remove(backupped_file_path)
+                shutil.move(os.path.join(path, file), backupped_file_path)
+            json_utility.save(modelversion.metadata, os.path.join(
+                path, f"mv{modelversion.id}_metadata.json"))
+        resp = requests.get(
+            f"{self.base_url}/models/{modelversion.metadata['modelId']}?modelVersionId={modelversion.metadata['id']}", headers=self.headers)
+        open(os.path.join(
+            path, f"mv{modelversion.id}_modelcard_{time_utility.get_timestamp()}.html"), "w").write(resp.text)
+
+        for file in files:
+            json_utility.save(file, os.path.join(
+                path, f"mvf{file['id']}_metadata.json"))
+            requests_utility.download_web_asset(file["downloadUrl"],
+                                                os.path.join(path, file["name"]))
+
+        if download_assets:
+            self.download_assets(
+                "modelversion", modelversion, "image", **kwargs)
+
+    def download_assets(self, target_type: str, target_object: Any, **kwargs: Optional[dict]) -> List[dict]:
         """
         Abstract method for downloading assets for a target object.
         :param target_type: Type of target object.
         :param target_object: Target object.
         :param asset_type: Asset type.
-        :param path: Path to download assets to.
         :param kwargs: Arbitrary keyword arguments.
+            "path": Path to use instead of model object path.
         :return: Asset data dictionaries.
         """
-        pass
+        path = kwargs.get("path", target_object.path if target_type ==
+                          "model" else target_object.model.path)
+        asset_path, _ = self._create_default_model_folder(path)
+        for asset in target_object.assets:
+            json_utility.save(asset.metadata, os.path.join(
+                asset_path, f"a{asset.id}_metadata.json"))
+            requests_utility.download_web_asset(
+                asset.url, os.path.join(asset_path, asset.url.split("/")[-1]))
+
+    def _create_default_model_folder(self, path: str) -> Tuple[str]:
+        """
+        Internal method for creating default model folder structure.
+        :param path: Path for creating model folder.
+        :return: Asset path and backup path.
+        """
+        file_system_utility.create_folder_tree(path, ["_assets", "_backups"])
+        return os.path.join(path, "_assets"), os.path.join(path, "_backups")
 
 
 class HuggingfaceAPIWrapper(AbstractAPIWrapper):
