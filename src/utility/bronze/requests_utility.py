@@ -10,7 +10,9 @@ from time import sleep
 from typing import Union, List, Any, Optional
 from . import json_utility
 import requests
+import math
 from lxml import html
+from tqdm import tqdm
 
 
 REQUEST_METHODS = {
@@ -106,23 +108,25 @@ def safely_request_page(url, tries: int = 5, delay: float = 2.0) -> requests.Res
     return resp
 
 
-def download_web_asset(asset_url: str, output_path: str, add_extension: bool = False) -> None:
+def download_web_asset(asset_url: str, output_path: str, add_extension: bool = False, headers: dict = None) -> None:
     """
     Function for downloading web asset.
     :param asset_url: Asset URL.
     :param output_path: Output path.
     :param add_extension: Flag, declaring whether to fetch extension from header data and add to output path.
         Defaults to False.
+    :param headers: Headers to use.
+        Default to None.
     """
     try:
-        asset_head = requests.head(asset_url).headers
+        asset_head = requests.head(asset_url, headers=headers).headers
         asset = requests.get(
-            asset_url, stream=True)
+            asset_url, headers=headers, stream=True)
     except requests.exceptions.SSLError:
         asset_head = requests.head(
-            asset_url, verify=False).headers
+            asset_url, headers=headers, verify=False).headers
         asset = requests.get(
-            asset_url, stream=True, verify=False)
+            asset_url, headers=headers, stream=True, verify=False)
 
     asset_content = asset.content
     if add_extension:
@@ -134,4 +138,17 @@ def download_web_asset(asset_url: str, output_path: str, add_extension: bool = F
         asset_extension = MEDIA_TYPES.get(
             main_type, {}).get(sub_type, {}).get("extension", ".unkown")
         output_path += asset_extension
-    open(output_path, "wb").write(asset_content)
+
+    asset_size = int(asset_head.get("content-length", 0))
+    block_size = 1024
+    local_size = 0
+
+    with open(output_path, "wb") as output_file:
+        for chunk in tqdm(asset.iter_content(block_size),
+                          total=math.ceil(asset_size//block_size), unit="KB", unit_scale=True):
+            output_file.write(asset_content)
+            local_size += len(chunk)
+    if local_size != asset_size:
+        os.remove(output_path)
+        raise requests.exceptions.RequestException(
+            f"Downloading '{asset_url}' failed!")
