@@ -138,8 +138,8 @@ def download_web_asset(asset_url: str, output_path: str, add_extension: bool = F
             main_type, {}).get(sub_type, {}).get("extension", ".unkown")
         output_path += asset_extension
 
-    asset_size = int(asset_head.get("content-length", 0))
-    chunk_size = 4096
+    asset_size = int(asset.headers.get("content-length", 0))
+    chunk_size = 1024
     local_size = 0
 
     with tqdm.wrapattr(open(output_path, "wb"), "write",
@@ -149,6 +149,5 @@ def download_web_asset(asset_url: str, output_path: str, add_extension: bool = F
             output_file.write(chunk)
             local_size += len(chunk)
     if local_size != asset_size:
-        os.remove(output_path)
         raise requests.exceptions.RequestException(
             f"Downloading '{asset_url}' failed ({local_size}/{asset_size})!")
