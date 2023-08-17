@@ -13,7 +13,7 @@ from src.utility.gold.filter_mask import FilterMask
 from src.configuration import configuration as cfg
 
 
-DEFAULT_DB_PATH = f"{cfg.PATHS.BACKEND_PATH}/processes/model.db"
+DEFAULT_DB_PATH = f"{cfg.PATHS.BACKEND_PATH}/model.db"
 
 
 class ModelDatabase(object):
