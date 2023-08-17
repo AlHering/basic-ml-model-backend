@@ -1,9 +1,0 @@
-{
-    "name": "civitai",
-    "type": "api_wrapper",
-    "data_path": "./data",
-    "module_path": "./wrapper.py",
-    "requirements": [
-        "requests"
-    ]
-}
