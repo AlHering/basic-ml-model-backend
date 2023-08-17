@@ -161,8 +161,10 @@ class APIWrapperPlugin(GenericPlugin):
         """
         Method for validating plugin health.
         """
-        module_path = os.path.join(
-            self.path, "wrapper.py")
+        module_path = self.info.get("module_path", os.path.join(
+            self.path, "wrapper.py"))
+        if module_path.startswith("./"):
+            module_path = os.path.join(self.path, module_path[2:])
         if not os.path.exists(module_path):
             self.module = environment_utility.get_module(module_path)
             if not hasattr(self.module, "spawn_wrapper"):
