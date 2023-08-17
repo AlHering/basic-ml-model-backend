@@ -12,7 +12,7 @@ from src.configuration import configuration as cfg
 from src.utility.bronze import json_utility, hashing_utility, dictionary_utility
 from src.utility.silver import file_system_utility
 from src.utility.gold.filter_mask import FilterMask
-from src.model.model_control.api_wrappers import AbstractAPIWrapper
+from src.model.model_control.api_wrapper import AbstractAPIWrapper
 import sqlalchemy
 from src.model.model_control.model_database import ModelDatabase
 
