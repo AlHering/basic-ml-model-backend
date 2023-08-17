@@ -14,7 +14,8 @@ from urllib.parse import urlparse
 import shutil
 from typing import Any, Optional, List, Tuple
 from src.utility.bronze import time_utility, json_utility, requests_utility
-from src.utility.silver import image_utility, internet_utility, file_system_utility
+from src.utility.silver import image_utility, internet_utility, file_system_utility, environment_utility
+from src.model.plugin_control.plugins import GenericPlugin, PluginImportException
 from src.configuration import configuration as cfg
 import abc
 
@@ -24,6 +25,15 @@ class AbstractAPIWrapper(abc.ABC):
     Abstract class, representing a API wrapper object.
     Such wrappers are used for connecting to model services.
     """
+
+    def __init__(self, access_token: str = None) -> None:
+        """
+        Initiation method.
+        :param access_token: Access token, if necessary.
+            Defaults to None.
+        """
+        self.access_token = access_token
+
     @abc.abstractclassmethod
     def get_source_name(cls) -> str:
         """
@@ -125,6 +135,50 @@ class AbstractAPIWrapper(abc.ABC):
         :return: Asset data dictionaries.
         """
         pass
+
+
+class APIWrapperPlugin(GenericPlugin):
+    """
+    Plugin class for API wrappers.
+    """
+
+    def __init__(self, info: dict, path: str, security_hash: str = None, install_dependencies: bool = False) -> None:
+        """
+        Representation of a generic plugin.
+        :param info: Plugin info.
+        :param path: Path to plugin.
+        :param security_hash: Hash that can be used for authentication purposes.
+            Defaults to None.
+        :param install_dependencies: Flag, declaring whether to dynamically install dependencies. Defaults to False.
+            Only set this flag to True, if the code loaded through plugins is actively checked.
+        """
+        self.module = None
+        super().__init__(info, path, security_hash, install_dependencies)
+
+    # Override
+
+    def validate(self) -> None:
+        """
+        Method for validating plugin health.
+        """
+        module_path = os.path.join(
+            self.path, "wrapper.py")
+        if not os.path.exists(module_path):
+            self.module = environment_utility.get_module(module_path)
+            if not hasattr(self.module, "spawn_wrapper"):
+                raise PluginImportException(
+                    self.name, self.type, "Wrapper module has no 'spawn_wrapper' function")
+        else:
+            raise PluginImportException(
+                self.name, self.type, f"Wrapper module not available under '{module_path}'")
+
+    def spawn_wrapper(self, access_token: str = None) -> AbstractAPIWrapper:
+        """
+        Method for spawning API wrapper.
+        :param access_token: Access token.
+            Defaults to None.
+        """
+        return self.module.spawn_wrapper(access_token)
 
 
 class CivitaiAPIWrapper(AbstractAPIWrapper):
