@@ -7,7 +7,6 @@
 """
 import os
 from typing import Any, Optional, List, Tuple, Dict
-import abc
 import traceback
 from src.configuration import configuration as cfg
 from src.utility.bronze import json_utility, hashing_utility, dictionary_utility
@@ -18,7 +17,7 @@ import sqlalchemy
 from src.model.model_control.model_database import ModelDatabase
 
 
-class GenericModelHandler(abc.ABC):
+class GenericModelHandler(object):
     """
     Class, representing ML Model Handler objects.
     A Model Handler utilizes API Wrappers for collecting metadata and downloading assets from
