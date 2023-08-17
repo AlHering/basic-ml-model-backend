@@ -38,7 +38,6 @@ def run_app() -> None:
         page_title="Model Control",
         page_icon=":books:"
     )
-    if os.path.exists()
 
     page = st.sidebar.selectbox(
         "Navigation",
@@ -49,12 +48,14 @@ def run_app() -> None:
 
     save_cache_button = st.sidebar.button("Save state.")
     if save_cache_button:
-        json_utility.save(st.session_state["CACHE"], cfg.PATHS.MODEL_CONTROL_FRONTEND_CACHE)
+        json_utility.save(
+            st.session_state["CACHE"], cfg.PATHS.MODEL_CONTROL_FRONTEND_CACHE)
 
 
 if __name__ == "__main__":
     if os.path.exists(cfg.PATHS.MODEL_CONTROL_FRONTEND_CACHE):
-        st.session_state["CACHE"] = json_utility.load(cfg.PATHS.MODEL_CONTROL_FRONTEND_CACHE)
+        st.session_state["CACHE"] = json_utility.load(
+            cfg.PATHS.MODEL_CONTROL_FRONTEND_CACHE)
     else:
         st.session_state["CACHE"] = {}
     safely_create_path(cfg.PATHS.MODEL_CONTROL_FRONTEND_ASSETS)
