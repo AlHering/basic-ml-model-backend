@@ -66,7 +66,7 @@ class GenericPlugin(object):
 
     def validate(self, *args: Optional[Any], **kwargs: Optional[Any]) -> None:
         """
-        Method for validating plugin.
+        Method for validating plugin health.
         :param args: Arbitrary arguments.
         :param kwargs: Arbitrary keyword arguments.
         """
