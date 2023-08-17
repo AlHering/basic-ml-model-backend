@@ -44,11 +44,12 @@ class GenericPlugin(object):
                 self.info["data_path"] = os.path.normpath(
                     os.path.join(path, self.info["data_path"]))
             file_system_utility.safely_create_path(self.info["data_path"])
+        self._basic_validate()
         self.validate()
 
-    def validate(self) -> None:
+    def _basic_validate(self) -> None:
         """
-        Method for validating plugin configuration.
+        Internal method for validating plugin configuration.
         """
         if not isinstance(self.info, dict):
             raise PluginImportException(
@@ -62,6 +63,14 @@ class GenericPlugin(object):
         if self.type is None:
             raise PluginImportException(
                 self.name, "unknown type", "Plugin type not found.")
+
+    def validate(self, *args: Optional[Any], **kwargs: Optional[Any]) -> None:
+        """
+        Method for validating plugin.
+        :param args: Arbitrary arguments.
+        :param kwargs: Arbitrary keyword arguments.
+        """
+        pass
 
     def save(self, path: str = None) -> None:
         """
