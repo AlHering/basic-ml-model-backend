@@ -156,7 +156,6 @@ class APIWrapperPlugin(GenericPlugin):
         super().__init__(info, path, security_hash, install_dependencies)
 
     # Override
-
     def validate(self) -> None:
         """
         Method for validating plugin health.
