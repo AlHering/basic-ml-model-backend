@@ -5,7 +5,7 @@
 *            (c) 2023 Alexander Hering             *
 ****************************************************
 """
-from typing import List, Any
+from typing import List, Any, Dict
 from src.model.model_control.model_handlers import GenericModelHandler
 from src.model.model_control.api_wrappers import CivitaiAPIWrapper, HuggingfaceAPIWrapper
 from src.model.model_control.model_database import ModelDatabase
@@ -18,15 +18,18 @@ class ModelController(object):
     model services for collecting metadata and downloading assets.
     """
 
-    def __init__(self, handlers: List[GenericModelHandler] = None) -> None:
+    def __init__(self, handlers: Dict[str, GenericModelHandler] = None) -> None:
         """
         Initiation method.
+        :param handlers: Handler dictionary.
+            Defaults to None in which case only default handlers are initialized.
         """
         self.database = ModelDatabase(
             database_uri=None, schema="model_control")
         self.model_folder = None
         self.cache_path = None
-        self.handlers = [] if handlers is None else handlers
+        self.handlers = {} if handlers is None else handlers
+        self._initiate_base_handlers()
 
     def _initiate_base_handlers(self) -> None:
         """
