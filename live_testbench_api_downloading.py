@@ -13,9 +13,9 @@ from src.utility.gold.filter_mask import FilterMask
 from src.configuration import configuration as cfg
 from src.utility.bronze import requests_utility
 from src.model.model_control.model_database import ModelDatabase, DEFAULT_DB_PATH
-from src.model.model_control.model_handlers import DiffusionModelHandler
+from src.model.model_control.model_handler import DiffusionModelHandler
 
-from src.model.model_control.api_wrappers import CivitaiAPIWrapper
+from src.model.model_control.api_wrapper import CivitaiAPIWrapper
 
 
 if __name__ == "__main__":

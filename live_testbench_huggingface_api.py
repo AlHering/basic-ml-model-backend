@@ -13,9 +13,9 @@ from src.utility.bronze import json_utility
 from src.utility.gold.filter_mask import FilterMask
 from src.configuration import configuration as cfg
 from src.model.model_control.model_database import ModelDatabase, DEFAULT_DB_PATH
-from src.model.model_control.model_handlers import LanguageModelHandler
+from src.model.model_control.model_handler import LanguageModelHandler
 
-from src.model.model_control.api_wrappers import HuggingfaceAPIWrapper
+from src.model.model_control.api_wrapper import HuggingfaceAPIWrapper
 
 
 if __name__ == "__main__":
