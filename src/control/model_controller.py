@@ -6,8 +6,8 @@
 ****************************************************
 """
 from typing import List, Any, Dict
-from src.model.model_control.model_handlers import GenericModelHandler
-from src.model.model_control.api_wrappers import CivitaiAPIWrapper, HuggingfaceAPIWrapper
+from src.model.model_control.model_handler import GenericModelHandler
+from src.model.model_control.api_wrapper import CivitaiAPIWrapper, HuggingfaceAPIWrapper
 from src.model.model_control.model_database import ModelDatabase
 
 
