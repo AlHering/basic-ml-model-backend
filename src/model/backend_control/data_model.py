@@ -25,7 +25,7 @@ def populate_data_instrastructure(engine: Engine, schema: str, model: dict) -> N
 
     class Log(base):
         """
-        Log class, representing an log entry, connected to a machine learning model or model version interaction.
+        Log class, representing an log entry, connected to a backend interaction.
         """
         __tablename__ = f"{schema}log"
         __table_args__ = {
