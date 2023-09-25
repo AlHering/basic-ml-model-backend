@@ -66,8 +66,15 @@ def populate_data_instrastructure(engine: Engine, schema: str, model: dict) -> N
 
         id = Column(Integer, primary_key=True, unique=True, nullable=False, autoincrement=True,
                     comment="ID of the document.")
-        content = Column(JSON, nullable=False,
+        filename = Column(Text, nullable=True,
+                         comment="Document filename.")
+        extension = Column(String, nullable=True,
+                         comment="Document file extension.")
+        part = Column(Integer, nullable=False, default=-1.
+                         comment="Document part number.")
+        content = Column(Text, nullable=False,
                          comment="Document content.")
+        meta_data = Column(JSON, comment="Document metadata.")
         created = Column(DateTime, server_default=func.now(),
                          comment="Timestamp of creation.")
         updated = Column(DateTime, server_default=func.now(), server_onupdate=func.now(),

@@ -111,8 +111,8 @@ def populate_data_instrastructure(engine: Engine, schema: str, model: dict) -> N
         __table_args__ = {
             "comment": "Model instance table.", "extend_existing": True}
 
-        uuid = Column(Uuid, primary_key=True, unique=True, nullable=False, default=uuid4,
-                      comment="UUID of the model instance.")
+        id = Column(Integer, primary_key=True, unique=True, nullable=False, autoincrement=True,
+                    comment="ID of the modelinstance.")
         backend = Column(String, nullable=False,
                          comment="Backend of the model instance.")
         loader = Column(String,
@@ -222,10 +222,3 @@ def populate_data_instrastructure(engine: Engine, schema: str, model: dict) -> N
         model[dataclass.__tablename__.replace(schema, "")] = dataclass
 
     base.metadata.create_all(bind=engine)
-
-    @event.listens_for(Modelinstance, "before_insert")
-    def generate_uuid(mapper: Any, connect: Any, target: Any) -> None:
-        """
-        Generation method for UUID, triggered before entry inserts.
-        """
-        target.uuid = uuid4()
