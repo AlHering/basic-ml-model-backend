@@ -8,7 +8,8 @@
 import uvicorn
 from enum import Enum
 from typing import Optional, Any
-from fastapi import FastAPI
+from datetime import datetime as dt
+from fastapi import FastAPI, File, UploadFile
 from pydantic import BaseModel
 from functools import wraps
 from src.configuration import configuration as cfg
@@ -17,20 +18,18 @@ from src.control.backend_controller import BackendController
 """
 Backend control
 """
-BACKEND = FastAPI(title="Basic Language Model Backend", version="0.1",
-                  description="Backend for serving Language Model capabilities.")
-STATUS = False
-CONTROLLER: BackendController = None
+BACKEND = FastAPI(title="LLM Tutor Backend", version="0.1",
+                  description="Backend for serving LLM Tutor services.")
+CONTROLLER: BackendController = BackendController()
 
 
-def access_validator(status: bool) -> Optional[Any]:
+def interface_function() -> Optional[Any]:
     """
     Validation decorator.
     :param func: Decorated function.
-    :param status: Status to check.
     :return: Error message if status is incorrect, else function return.
     """
-    global STATUS
+    global CONTROLLER
 
     def wrapper(func: Any) -> Optional[Any]:
         """
@@ -45,10 +44,21 @@ def access_validator(status: bool) -> Optional[Any]:
             :param args: Arguments.
             :param kwargs: Keyword arguments.
             """
-            if status != STATUS:
-                return {"message": f"System is {' already started' if STATUS else 'currently stopped'}"}
-            else:
-                return await func(*args, **kwargs)
+            requested = dt.now()
+            response = await func(*args, **kwargs)
+            responded = dt.now()
+            CONTROLLER.post_object(
+                "log",
+                request={
+                    "function": func.__name__,
+                    "args": args,
+                    "kwargs": kwargs
+                },
+                response=response,
+                requested=requested,
+                responded=responded
+            )
+            return response
         return inner
     return wrapper
 
@@ -56,15 +66,6 @@ def access_validator(status: bool) -> Optional[Any]:
 """
 Dataclasses
 """
-
-
-class Model(BaseModel):
-    """
-    Dataclass for model representation.
-    """
-    path: str
-    type: str
-    loader: str
 
 
 """
@@ -78,26 +79,16 @@ class Endpoints(str, Enum):
     """
     BASE = "/api/v1"
 
-    GET_STATUS = f"{BASE}/status"
-    POST_START = f"{BASE}/start"
-    POST_STOP = f"{BASE}/stop"
+    GET_LLMS = f"{BASE}/llms/"
+    GET_KBS = f"{BASE}/kbs/"
 
-    GET_MODELS = f"{BASE}/models/"
-    GET_MODEL = f"{BASE}/model/{{model_id}}"
-    POST_MODEL = f"{BASE}/model/"
-    PATCH_MODEL = f"{BASE}/model/{{model_id}}"
-    DELETE_MODEL = f"{BASE}/model/{{model_id}}"
+    CREATE_KB = f"{BASE}/kbs/create"
+    DELETE_KB = f"{BASE}/kbs/delete/{{kb_id}}"
 
-    GET_INSTANCES = f"{BASE}/instances"
-    GET_INSTANCE = f"{BASE}/instance/{{instance_uuid}}"
-    POST_INSTANCE = f"{BASE}/instance"
-    PATCH_INSTANCE = f"{BASE}/instance/{{instance_uuid}}"
-    DELETE_INSTANCE = f"{BASE}/instance/{{instance_uuid}}"
+    UPLOAD_DOCUMENT = f"{BASE}/kbs/upload/{{kb_id}}"
+    DELETE_DOCUMENT = f"{BASE}/kbs/delete_doc/{{doc_id}}"
 
-    POST_LOAD_INSTANCE = f"{BASE}/instance/{{instance_uuid}}/load"
-    POST_UNLOAD_INSTANCE = f"{BASE}/instance/{{instance_uuid}}/unload"
-
-    POST_GENERATE = f"{BASE}/instance/{{instance_uuid}}/generate"
+    POST_QUERY = f"{BASE}/query"
 
     def __str__(self) -> str:
         """
@@ -107,223 +98,104 @@ class Endpoints(str, Enum):
 
 
 """
-Basic backend endpoints
+Endpoints
 """
 
 
-@BACKEND.get(Endpoints.GET_STATUS)
-async def get_status() -> dict:
+@BACKEND.get(Endpoints.GET_LLMS)
+@interface_function()
+async def get_llms() -> dict:
     """
-    Root endpoint for getting system status.
-    :return: Response.
-    """
-    global STATUS
-    return {"message": f"System is {'started' if STATUS else 'stopped'}!"}
-
-
-@BACKEND.post(Endpoints.POST_START)
-@access_validator(status=False)
-async def post_start() -> dict:
-    """
-    Endpoint for starting system.
-    :return: Response.
-    """
-    global STATUS
-    global CONTROLLER
-    CONTROLLER = BackendController()
-    STATUS = True
-    return {"message": f"System started!"}
-
-
-@BACKEND.post(Endpoints.POST_STOP)
-@access_validator(status=True)
-async def post_stop() -> dict:
-    """
-    Endpoint for stopping system.
-    :return: Response.
-    """
-    global STATUS
-    global CONTROLLER
-    CONTROLLER.shutdown()
-    STATUS = False
-    return {"message": f"System stopped!"}
-
-
-"""
-Models endpoints
-"""
-
-
-@BACKEND.get(Endpoints.GET_MODELS)
-@access_validator(status=True)
-async def get_models() -> dict:
-    """
-    Endpoint for getting models.
+    Endpoint for getting LLMs.
     :return: Response.
     """
     global CONTROLLER
-    return {"models": CONTROLLER.get_objects("model")}
+    return {"llms": CONTROLLER.get_objects_by_type("modelinstance")}
 
 
-@BACKEND.get(Endpoints.GET_MODEL)
-@access_validator(status=True)
-async def get_model(model_id: int) -> dict:
+@BACKEND.get(Endpoints.GET_KBS)
+@interface_function()
+async def get_kbs() -> dict:
     """
-    Endpoint for getting a specific model.
-    :param model_id: Model ID.
+    Endpoint for getting KBs.
     :return: Response.
     """
     global CONTROLLER
-    return {"model": CONTROLLER.get_object("model", model_id)}
+    return {"kbs": CONTROLLER.get_objects_by_type("knowledgebase")}
 
 
-@BACKEND.post(Endpoints.POST_MODEL)
-@access_validator(status=True)
-async def post_model(model: Model) -> dict:
+@BACKEND.post(Endpoints.CREATE_KB)
+@interface_function()
+async def post_kb(uuid: str) -> str:
     """
-    Endpoint for posting a model.
-    :param model: Model.
+    Method for creating knowledgebase.
+    :param uuid: Knowledgebase uuid.
     :return: Response.
     """
     global CONTROLLER
-    return {"id": CONTROLLER.post_object("model",
-                                         **model.dict())}
+    kb_id = CONTROLLER.post_object("knowledgebase")
+    CONTROLLER.register_knowledgebase(kb_id=kb_id)
+    return {"kb_id": kb_id}
 
 
-@BACKEND.patch(Endpoints.PATCH_MODEL)
-@access_validator(status=True)
-async def patch_model(model_id: int, patch: dict) -> dict:
+@BACKEND.delete(Endpoints.DELETE_KB)
+@interface_function()
+async def delete_kb(kb_id: int) -> dict:
     """
-    Endpoint for patching a model.
-    :param model_id: Model ID.
-    :param patch: Patch.
+    Endpoint for deleting KBs.
+    :param kb_id: int: Knowledgebase ID.
     :return: Response.
     """
     global CONTROLLER
-    return {"id": CONTROLLER.patch_object("model",
-                                          model_id,
-                                          **patch)}
+    CONTROLLER.delete_object("knowledgebase", kb_id)
+    CONTROLLER.wipe_knowledgebase(str(kb_id))
+    return {"kb_id": kb_id}
 
 
-@BACKEND.delete(Endpoints.DELETE_MODEL)
-@access_validator(status=True)
-async def delete_model(model_id: int) -> dict:
+@BACKEND.post(Endpoints.UPLOAD_DOCUMENT)
+@interface_function()
+async def upload_document(kb_id: int, document_content: str, document_metadata: dict = None) -> dict:
     """
-    Endpoint for deleting a model.
-    :param model_id: Model ID.
+    Endpoint for uploading a document.
+    :param kb_id: int: KB ID.
+    :param document_content: Document content.
+    :param document_metadata: Document metadata.
     :return: Response.
     """
     global CONTROLLER
-    return {"id": CONTROLLER.delete_object("model",
-                                           model_id)}
+    document_id = CONTROLLER.embed_document(
+        kb_id, document_content, document_metadata)
+    return {"document_id": document_id}
 
 
-"""
-Instance endpoints
-"""
-
-
-@BACKEND.get(Endpoints.GET_INSTANCES)
-@access_validator(status=True)
-async def get_instances() -> dict:
+@BACKEND.delete(Endpoints.DELETE_DOCUMENT)
+@interface_function()
+async def delete_document(document_id: int) -> dict:
     """
-    Endpoint for getting available model instance configurations.
-    :param config: Config.
+    Endpoint for deleting document.
+    :param document_id: Document ID.
     :return: Response.
     """
     global CONTROLLER
-    return {"instances": CONTROLLER.get_objects("instance")}
+    document_id = CONTROLLER.delete_document_embeddings(document_id)
+    return {"document_id": document_id}
 
 
-@BACKEND.get(Endpoints.GET_INSTANCE)
-@access_validator(status=True)
-async def get_instance(instance_uuid: str) -> dict:
+@BACKEND.post(Endpoints.POST_QUERY)
+@interface_function()
+async def post_qa_query(llm_id: int, kb_id: int, query: str, include_sources: bool = True) -> dict:
     """
-    Endpoint for getting a model instance configuration.
-    :param instance_uuid: Instance UUID.
-    :return: Response.
-    """
+    Endpoint for posting document qa query.
+        :param llm_id: LLM ID.
+        :param kb_id: Knowledgebase ID.
+        :param query: Query.
+        :param include_sources: Flag declaring, whether to include sources.
+        :return: Response.
+        """
     global CONTROLLER
-    return {"instance": CONTROLLER.get_object("instance", instance_uuid)}
-
-
-@BACKEND.post(Endpoints.POST_INSTANCE)
-@access_validator(status=True)
-async def post_instance(config: dict) -> dict:
-    """
-    Endpoint for posting a model instance configuration.
-    :param config: Instance config.
-    :return: Response.
-    """
-    global CONTROLLER
-    return {"instance": CONTROLLER.post_object("instance",
-                                               **config)}
-
-
-@BACKEND.patch(Endpoints.PATCH_INSTANCE)
-@access_validator(status=True)
-async def patch_instance(instance_uuid: str, patch: dict) -> dict:
-    """
-    Endpoint for patching a model instance configuration.
-    :param instance_uuid: Instance UUID.
-    :param patch: Instance patch.
-    :return: Response.
-    """
-    global CONTROLLER
-    print(instance_uuid)
-    print(patch)
-    return {"instance": CONTROLLER.patch_object("instance", instance_uuid,
-                                                **patch)}
-
-
-@BACKEND.delete(Endpoints.DELETE_INSTANCE)
-@access_validator(status=True)
-async def delete_instance(instance_uuid: str) -> dict:
-    """
-    Endpoint for deleting a model instance configuration.
-    :param instance_uuid: Instance UUID.
-    :return: Response.
-    """
-    global CONTROLLER
-    return {"instance": CONTROLLER.delete_object("instance", instance_uuid)}
-
-
-@BACKEND.post(Endpoints.POST_LOAD_INSTANCE)
-@access_validator(status=True)
-async def load_instance(instance_uuid: str) -> dict:
-    """
-    Endpoint for loading a model instance.
-    :param instance_uuid: Instance UUID.
-    :return: Response.
-    """
-    global CONTROLLER
-    return {"instance": CONTROLLER.load_instance(instance_uuid)}
-
-
-@BACKEND.post(Endpoints.POST_UNLOAD_INSTANCE)
-@access_validator(status=True)
-async def unload_instance(instance_uuid: str) -> dict:
-    """
-    Endpoint for unloading a model instance.
-    :param instance_uuid: Instance UUID.
-    :return: Response.
-    """
-    global CONTROLLER
-    return {"instance": CONTROLLER.unload_instance(instance_uuid)}
-
-
-@BACKEND.post(Endpoints.POST_GENERATE)
-@access_validator(status=True)
-async def post_generate(instance_uuid: str, prompt: str) -> dict:
-    """
-    Endpoint for requesting a generation task from a model instance.
-    :param instance_uuid: Instance UUID.
-    :param prompt: Prompt.
-    :return: Response.
-    """
-    global CONTROLLER
-    return {"result": CONTROLLER.forward_generate(instance_uuid, prompt)}
-
+    response = CONTROLLER.forward_document_qa(
+        llm_id, kb_id, query, include_sources)
+    return {"response": response}
 
 """
 Backend runner
@@ -341,7 +213,7 @@ def run_backend(host: str = None, port: int = None, reload: bool = True) -> None
                 host="127.0.0.1" if host is None else host,
                 port=int(
                     cfg.ENV.get("BACKEND_PORT", 7861) if port is None else port),
-                reload=True)
+                reload=False)
 
 
 if __name__ == "__main__":
