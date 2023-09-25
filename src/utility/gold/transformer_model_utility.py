@@ -133,6 +133,13 @@ class AutoGPTQLM(LanguageModel):
             inputs = self.tokenizer(prompt, return_tensors="pt")
             return self.model(**inputs)
 
+    def get_model_instance(self) -> Any:
+        """
+        Method for getting model instance.
+        :return: LLM instance.
+        """
+        return self.tokenizer, self.model
+
 
 class LocalHFLM(LanguageModel):
     """
@@ -171,6 +178,13 @@ class LocalHFLM(LanguageModel):
         else:
             inputs = self.tokenizer(prompt, return_tensors="pt")
             return self.model(**inputs)
+
+    def get_model_instance(self) -> Any:
+        """
+        Method for getting model instance.
+        :return: LLM instance.
+        """
+        return self.tokenizer, self.model
 
 
 class LocalHFEmbeddingLM(LocalHFLM):
@@ -217,6 +231,13 @@ class LocalHFEmbeddingLM(LocalHFLM):
         last_hidden = last_hidden_states.masked_fill(
             ~attention_mask[..., None].bool(), 0.0)
         return last_hidden.sum(dim=1) / attention_mask.sum(dim=1)[..., None]
+
+    def get_model_instance(self) -> Any:
+        """
+        Method for getting model instance.
+        :return: LLM instance.
+        """
+        return self.tokenizer, self.model
 
 
 """
