@@ -5,27 +5,49 @@
 *            (c) 2023 Alexander Hering             *
 ****************************************************
 """
+import os
 from typing import List, Any, Dict
+from src.configuration import configuration as cfg
 from src.model.model_control.model_handler import GenericModelHandler
+from src.model.model_control.data_model import populate_data_instrastructure
 from src.model.model_control.api_wrapper import CivitaiAPIWrapper, HuggingfaceAPIWrapper
-from src.model.model_control.model_database import ModelDatabase
+from src.utility.gold.basic_sqlalchemy_interface import BasicSQLAlchemyInterface
 
 
-class ModelController(object):
+class ModelController(BasicSQLAlchemyInterface):
     """
     Class, representing ML Model Controller objects.
     A Model Controller manages Model Handlers, which use API Wrappers to provide
     model services for collecting metadata and downloading assets.
     """
 
-    def __init__(self, handlers: Dict[str, GenericModelHandler] = None) -> None:
+    def __init__(self, working_directory: str = None, database_uri: str = None, handlers: Dict[str, GenericModelHandler] = None) -> None:
         """
         Initiation method.
+        :param working_directory: Working directory.
+            Defaults to folder 'processes' folder under standard backend data path.
+        :param database_uri: Database URI.
+            Defaults to 'backend.db' file under default data path.
         :param handlers: Handler dictionary.
             Defaults to None in which case only default handlers are initialized.
         """
-        self.database = ModelDatabase(
-            database_uri=None, schema="model_control")
+        self._logger = cfg.LOGGER
+        self.working_directory = cfg.PATHS.BACKEND_PATH if working_directory is None else working_directory
+        if not os.path.exists(self.working_directory):
+            os.makedirs(self.working_directory)
+        self.database_uri = f"sqlite:///{os.path.join(cfg.PATHS.DATA_PATH, 'backend.db')}" if database_uri is None else database_uri
+
+        # Database infrastructure
+        super().__init__(self.working_directory, self.database_uri,
+                         populate_data_instrastructure, self._logger)
+        self.base = None
+        self.engine = None
+        self.model = None
+        self.schema = None
+        self.session_factory = None
+        self.primary_keys = None
+        self._setup_database()
+
         self.model_folder = None
         self.cache_path = None
         self.handlers = {} if handlers is None else handlers
@@ -37,7 +59,7 @@ class ModelController(object):
         """
         for init_kwargs in [
             {
-                "database": self.database,
+                "database": self,
                 "model_folder": self.model_folder,
                 "cache_path": self.cache_path,
                 "apis": {"civitai": CivitaiAPIWrapper()},
@@ -50,7 +72,7 @@ class ModelController(object):
                             "TORCH_DEEPDANBOORU", "VAE", "WILDCARDS"]
             },
             {
-                "database": self.database,
+                "database": self,
                 "model_folder": self.model_folder,
                 "cache_path": self.cache_path,
                 "apis": {"huggingface": HuggingfaceAPIWrapper()},
