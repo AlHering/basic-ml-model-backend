@@ -23,97 +23,6 @@ def populate_data_instrastructure(engine: Engine, schema: str, model: dict) -> N
         schema += "."
     base = declarative_base()
 
-    class Knowledgebase(base):
-        """
-        Knowledgebase class, representing an knowledge base config..
-        """
-        __tablename__ = f"{schema}knowledgebase"
-        __table_args__ = {
-            "comment": "Knowledgebase table.", "extend_existing": True}
-
-        id = Column(Integer, primary_key=True, unique=True, nullable=False, autoincrement=True,
-                    comment="ID of the knowledgebase.")
-        persistant_directory = Column(String, nullable=False,
-                                      comment="Knowledgebase persistant directory.")
-        document_directory = Column(String, nullable=False,
-                                    comment="Knowledgebase document directory.")
-        handler = Column(String, nullable=False, default="chromadb",
-                         comment="Knowledgebase handler.")
-        implementation = Column(String, nullable=False, default="duckdb+parquet",
-                                comment="Handler implementation.")
-
-        meta_data = Column(JSON, comment="Knowledgebase metadata.")
-        created = Column(DateTime, server_default=func.now(),
-                         comment="Timestamp of creation.")
-        updated = Column(DateTime, server_default=func.now(), server_onupdate=func.now(),
-                         comment="Timestamp of last update.")
-        inactive = Column(Boolean, nullable=False, default=False,
-                          comment="Inactivity flag.")
-
-        documents = relationship(
-            "Document", back_populates="knowledgebase")
-        embedding_instance_id = mapped_column(
-            Integer, ForeignKey(f"{schema}modelinstance.id"))
-        embedding_instance = relationship("Modelinstance")
-
-    class Document(base):
-        """
-        Document class, representing an document.
-        """
-        __tablename__ = f"{schema}document"
-        __table_args__ = {
-            "comment": "Document table.", "extend_existing": True}
-
-        id = Column(Integer, primary_key=True, unique=True, nullable=False, autoincrement=True,
-                    comment="ID of the document.")
-        filename = Column(Text, nullable=True,
-                         comment="Document filename.")
-        extension = Column(String, nullable=True,
-                         comment="Document file extension.")
-        part = Column(Integer, nullable=False, default=-1.
-                         comment="Document part number.")
-        content = Column(Text, nullable=False,
-                         comment="Document content.")
-        meta_data = Column(JSON, comment="Document metadata.")
-        created = Column(DateTime, server_default=func.now(),
-                         comment="Timestamp of creation.")
-        updated = Column(DateTime, server_default=func.now(), server_onupdate=func.now(),
-                         comment="Timestamp of last update.")
-        inactive = Column(Boolean, nullable=False, default=False,
-                          comment="Inactivity flag.")
-
-        knowledgebase_id = mapped_column(
-            Integer, ForeignKey(f"{schema}knowledgebase.id"))
-        knowledgebase = relationship(
-            "Knowledgebase", back_populates="documents")
-
-    class Modelinstance(base):
-        """
-        Modelinstance class, representing a machine learning model (version) instance.
-        """
-        __tablename__ = f"{schema}modelinstance"
-        __table_args__ = {
-            "comment": "Model instance table.", "extend_existing": True}
-
-        id = Column(Integer, primary_key=True, unique=True, nullable=False, autoincrement=True,
-                    comment="ID of the modelinstance.")
-        backend = Column(String, nullable=False,
-                         comment="Backend of the model instance.")
-        loader = Column(String,
-                        comment="Loader for the model instance.")
-        loader_kwargs = Column(JSON,
-                               comment="Additional loading keyword arguments.")
-        gateway = Column(String,
-                         comment="Gateway for instance interaction.")
-        meta_data = Column(JSON,
-                           comment="Metadata of the model instance.")
-        created = Column(DateTime, server_default=func.now(),
-                         comment="Timestamp of creation.")
-        updated = Column(DateTime, server_default=func.now(), server_onupdate=func.now(),
-                         comment="Timestamp of last update.")
-        inactive = Column(Boolean, nullable=False, default=False,
-                          comment="Inactivity flag.")
-
     class Log(base):
         """
         Log class, representing an log entry, connected to a machine learning model or model version interaction.
@@ -132,7 +41,7 @@ def populate_data_instrastructure(engine: Engine, schema: str, model: dict) -> N
         responded = Column(DateTime, server_default=func.now(), server_onupdate=func.now(),
                            comment="Timestamp of reponse transmission.")
 
-    for dataclass in [Knowledgebase, Document, Modelinstance, Log]:
+    for dataclass in [Log]:
         model[dataclass.__tablename__.replace(schema, "")] = dataclass
 
     base.metadata.create_all(bind=engine)

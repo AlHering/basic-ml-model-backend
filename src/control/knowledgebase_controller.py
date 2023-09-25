@@ -21,9 +21,9 @@ from src.utility.silver.file_system_utility import safely_create_path
 from src.model.knowledgebase_control.chromadb_knowledgebase import ChromaKnowledgeBase, KnowledgeBase
 
 
-class BackendController(BasicSQLAlchemyInterface):
+class KnowledgebaseController(BasicSQLAlchemyInterface):
     """
-    Controller class for handling backend interface requests.
+    Controller class for handling knowledgebase interface requests.
     """
 
     def __init__(self, working_directory: str = None, database_uri: str = None) -> None:
@@ -43,7 +43,7 @@ class BackendController(BasicSQLAlchemyInterface):
 
         # Database infrastructure
         super().__init__(self.working_directory, self.database_uri,
-                         populate_data_instrastructure, "backend_control.", self._logger)
+                         populate_data_instrastructure, "knowledgebase_control.", self._logger)
         self.base = None
         self.engine = None
         self.model = None

@@ -39,7 +39,7 @@ class ModelController(BasicSQLAlchemyInterface):
 
         # Database infrastructure
         super().__init__(self.working_directory, self.database_uri,
-                         populate_data_instrastructure, self._logger)
+                         populate_data_instrastructure, "model_control.", self._logger)
         self.base = None
         self.engine = None
         self.model = None

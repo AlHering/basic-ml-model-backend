@@ -17,12 +17,14 @@ class BasicSQLAlchemyInterface(object):
     Class, representing a basic SQL Alchemy interface.
     """
 
-    def __init__(self, working_directory: str, database_uri: str, population_function: Any, logger: Any = None) -> None:
+    def __init__(self, working_directory: str, database_uri: str, population_function: Any, schema: str = None, logger: Any = None) -> None:
         """
         Initiation method.
         :param working_directory: Working directory.
         :param database_uri: Database URI.
         :param population_function: A function, taking an engine, schema and a dataclass dictionary (later one can be empty and is to be populated).
+        :param schema: Database schema to use.
+            Defaults to None.
         :param logger: Logger instance. 
             Defaults to None in which case separate logging is disabled.
         """
@@ -37,7 +39,7 @@ class BasicSQLAlchemyInterface(object):
         self.base = None
         self.engine = None
         self.model = None
-        self.schema = None
+        self.schema = schema
         self.session_factory = None
         self.primary_keys = None
         self._setup_database()
@@ -52,7 +54,7 @@ class BasicSQLAlchemyInterface(object):
         self.engine = sqlalchemy_utility.get_engine(self.database_uri)
 
         self.model = {}
-        self.schema = "backend."
+        self.schema = "" if self.schema is None else self.schema
 
         if self.logger is not None:
             self._logger.info(
