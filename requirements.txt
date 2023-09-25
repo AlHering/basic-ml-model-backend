@@ -41,4 +41,4 @@ duckdb==0.8.0
 free-proxy==1.1.1
 autotrain-advanced==0.6.15
 fake-useragent==1.1.3
-streamlit==1.12.0
+streamlit==1.21.0

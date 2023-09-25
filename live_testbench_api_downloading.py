@@ -20,11 +20,12 @@ from src.model.model_control.api_wrapper import CivitaiAPIWrapper
 
 if __name__ == "__main__":
     output_path = "/mnt/Workspaces/Workspaces/projects/basic-language-model-backend/data/testing/diffusion_models/disneyPixarCartoon_v10.safetensors"
-    """wrapper = CivitaiAPIWrapper()
+    wrapper = CivitaiAPIWrapper()
     wrapper.download_model(
         model="",
         path=output_path
-    )"""
+    )
 
-    requests_utility.download_web_asset(
+    """requests_utility.download_web_asset(
         "https://civitai.com/api/download/models/69832", output_path=output_path)
+    """

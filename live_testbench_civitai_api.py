@@ -12,7 +12,6 @@ from src.utility.bronze import json_utility
 from src.utility.gold.filter_mask import FilterMask
 from src.configuration import configuration as cfg
 from src.model.model_control.model_database import ModelDatabase, DEFAULT_DB_PATH
-from src.model.model_control.model_handler import DiffusionModelHandler
 
 from src.model.model_control.api_wrapper import CivitaiAPIWrapper
 
@@ -22,12 +21,4 @@ if __name__ == "__main__":
     #    os.remove(DEFAULT_DB_PATH)
     db = ModelDatabase(database_uri=None, schema="civitai", verbose=True)
     wrapper = CivitaiAPIWrapper()
-    handler = DiffusionModelHandler(
-        database=db,
-        model_folder=cfg.PATHS.TEST_PATH + "/diffusion_models",
-        cache_path=cfg.PATHS.TEST_PATH + "/diffusion_models_cache.json",
-        apis={
-            wrapper.get_source_name(): wrapper,
-        }
-    )
-    handler.scrape_available_models(wrapper.get_source_name())
+    # handler.scrape_available_models(wrapper.get_source_name())
