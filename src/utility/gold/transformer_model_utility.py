@@ -7,7 +7,7 @@
 """
 import os
 from datasets import load_dataset
-from typing import Any, Optional, List
+from typing import Any, Optional, List, Union
 from abc import ABC, abstractmethod
 from transformers import AutoTokenizer, AutoModel
 from auto_gptq import AutoGPTQForCausalLM, BaseQuantizeConfig
@@ -32,11 +32,19 @@ class LanguageModel(ABC):
     """
 
     @abstractmethod
-    def generate(prompt: str) -> Any:
+    def generate(self, prompt: Union[str, List[str]]) -> Optional[Any]:
         """
         Main handler method for wrapping language model capabilities.
-        :param prompt: User prompt.
-        :return: Response.
+        :param prompt: User prompt(s).
+        :return: Response(s), if generation was successful.
+        """
+        pass
+
+    @abstractmethod
+    def get_model_instance(self) -> Any:
+        """
+        Method for getting model instance.
+        :return: LLM instance.
         """
         pass
 
@@ -59,28 +67,20 @@ class LlamaCppLM(LanguageModel):
             **model_config.get("loader_kwargs", {})
         )
 
-    def generate(self, prompt: str) -> Optional[Any]:
-        """
-        Generation method.
-        :param prompt: User prompt.
-        :return: Response, if generation method is available else None.
-        """
-        return self.llm.generate([prompt])
-
-
-class LanguageModel(ABC):
-    """
-    Abstract language model class.
-    """
-
-    @abstractmethod
-    def generate(prompt: str) -> Any:
+    def generate(self, prompt: Union[str, List[str]]) -> Optional[Any]:
         """
         Main handler method for wrapping language model capabilities.
-        :param prompt: User prompt.
-        :return: Response.
+        :param prompt: User prompt(s).
+        :return: Response(s), if generation was successful.
         """
-        pass
+        return self.llm.generate(prompt if isinstance(prompt, list) else [prompt])
+
+    def get_model_instance(self) -> Any:
+        """
+        Method for getting model instance.
+        :return: LLM instance.
+        """
+        return self.llm
 
 
 class AutoGPTQLM(LanguageModel):
@@ -117,14 +117,21 @@ class AutoGPTQLM(LanguageModel):
                 **model_config.get("loader_kwargs", {}).get("model", {})
             )
 
-    def generate(self, prompt: str) -> Optional[Any]:
+    def generate(self, prompt: Union[str, List[str]]) -> Optional[Any]:
         """
-        Generation method.
-        :param prompt: User prompt.
-        :return: Response, if generation method is available else None.
+        Main handler method for wrapping language model capabilities.
+        :param prompt: User prompt(s).
+        :return: Response(s), if generation was successful.
         """
-        inputs = self.tokenizer(prompt, return_tensors="pt")
-        return self.model(**inputs)
+        if isinstance(prompt, list):
+            responses = []
+            for single_prompt in prompt:
+                inputs = self.tokenizer(single_prompt, return_tensors="pt")
+                responses.append(self.model(**inputs))
+            return responses
+        else:
+            inputs = self.tokenizer(prompt, return_tensors="pt")
+            return self.model(**inputs)
 
 
 class LocalHFLM(LanguageModel):
@@ -149,14 +156,21 @@ class LocalHFLM(LanguageModel):
             **model_config.get("loader_kwargs", {}).get("model", {})
         )
 
-    def generate(self, prompt: str) -> Optional[Any]:
+    def generate(self, prompt: Union[str, List[str]]) -> Optional[Any]:
         """
-        Generation method.
-        :param prompt: User prompt.
-        :return: Response, if generation method is available else None.
+        Main embedding method.
+        :param prompt: User prompt(s).
+        :return: Response(s), if generation was successful.
         """
-        inputs = self.tokenizer(prompt, return_tensors="pt")
-        return self.model(**inputs)
+        if isinstance(prompt, list):
+            responses = []
+            for single_prompt in prompt:
+                inputs = self.tokenizer(single_prompt, return_tensors="pt")
+                responses.append(self.model(**inputs))
+            return responses
+        else:
+            inputs = self.tokenizer(prompt, return_tensors="pt")
+            return self.model(**inputs)
 
 
 class LocalHFEmbeddingLM(LocalHFLM):
@@ -164,22 +178,37 @@ class LocalHFEmbeddingLM(LocalHFLM):
     General LM class for local Huggingface models for embedding.
     """
 
-    def generate(self, prompt: str) -> List[float]:
+    def generate(self, prompt: Union[str, List[str]]) -> Optional[Any]:
         """
-        Method for embedding prompt.
-        :param prompt: Prompt.
-        :return: Prompt embedding.
+        Main embedding method.
+        :param prompt: User prompt(s).
+        :return: Response(s), if generation was successful.
         """
-        inputs = self.tokenizer(prompt, max_length=512,
-                                padding=True, truncation=True, return_tensors='pt')
+        if isinstance(prompt, list):
+            responses = []
+            for single_prompt in prompt:
+                inputs = self.tokenizer(prompt, max_length=512,
+                                        padding=True, truncation=True, return_tensors='pt')
 
-        outputs = self.model(**inputs)
-        embeddings = self.average_pool(outputs.last_hidden_state,
-                                       inputs['attention_mask'])
+                outputs = self.model(**inputs)
+                embeddings = self.average_pool(outputs.last_hidden_state,
+                                               inputs['attention_mask'])
 
-        # normalize embeddings
-        embeddings = F.normalize(embeddings, p=2, dim=1)
-        return embeddings.tolist()
+                # normalize embeddings
+                embeddings = F.normalize(embeddings, p=2, dim=1)
+                responses.append(embeddings.tolist())
+            return responses
+        else:
+            inputs = self.tokenizer(prompt, max_length=512,
+                                    padding=True, truncation=True, return_tensors='pt')
+
+            outputs = self.model(**inputs)
+            embeddings = self.average_pool(outputs.last_hidden_state,
+                                           inputs['attention_mask'])
+
+            # normalize embeddings
+            embeddings = F.normalize(embeddings, p=2, dim=1)
+            return embeddings.tolist()
 
     def average_pool(self, last_hidden_states: Tensor, attention_mask: Tensor) -> Tensor:
         """
