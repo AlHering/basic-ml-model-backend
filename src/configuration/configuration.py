@@ -21,7 +21,45 @@ ENV = dotenv_values(os.path.join(PATHS.PACKAGE_PATH, ".env"))
 """
 Logger
 """
-LOGGER = logging.Logger("LMBACKEND")
+
+
+class LOGGER_REPLACEMENT(object):
+    """
+    Temporary logger replacement class.
+    """
+
+    def debug(self, text: str) -> None:
+        """
+        Method replacement for logging.
+        :param text: Text to log.
+        """
+        print(f"[DEBUG] {text}")
+
+    def info(self, text: str) -> None:
+        """
+        Method replacement for logging.
+        :param text: Text to log.
+        """
+        print(f"[INFO] {text}")
+
+    def warning(self, text: str) -> None:
+        """
+        Method replacement for logging.
+        :param text: Text to log.
+        """
+        print(f"[WARNING] {text}")
+
+    def warn(self, text: str) -> None:
+        """
+        Method replacement for logging.
+        :param text: Text to log.
+        """
+        print(f"[WARNING] {text}")
+
+
+LOGGER = LOGGER_REPLACEMENT()
+# LOGGER = logging.Logger("LMBACKEND")
+# LOGGER.setLevel(level=logging.INFO)
 
 
 """

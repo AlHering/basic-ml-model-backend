@@ -7,9 +7,10 @@
 """
 import os
 from datasets import load_dataset
-from typing import Any, Optional, List
+from typing import Any, Optional, List, Union
 from abc import ABC, abstractmethod
 from transformers import AutoTokenizer, AutoModel
+from auto_gptq import AutoGPTQForCausalLM, BaseQuantizeConfig
 from transformers import TrainingArguments, Trainer, DataCollatorWithPadding
 import evaluate
 import torch.nn.functional as F
@@ -31,11 +32,19 @@ class LanguageModel(ABC):
     """
 
     @abstractmethod
-    def generate(prompt: str) -> Any:
+    def generate(self, prompt: Union[str, List[str]]) -> Optional[Any]:
         """
         Main handler method for wrapping language model capabilities.
-        :param prompt: User prompt.
-        :return: Response.
+        :param prompt: User prompt(s).
+        :return: Response(s), if generation was successful.
+        """
+        pass
+
+    @abstractmethod
+    def get_model_instance(self) -> Any:
+        """
+        Method for getting model instance.
+        :return: LLM instance.
         """
         pass
 
@@ -58,13 +67,78 @@ class LlamaCppLM(LanguageModel):
             **model_config.get("loader_kwargs", {})
         )
 
-    def generate(self, prompt: str) -> Optional[Any]:
+    def generate(self, prompt: Union[str, List[str]]) -> Optional[Any]:
         """
-        Generation method.
-        :param prompt: User prompt.
-        :return: Response, if generation method is available else None.
+        Main handler method for wrapping language model capabilities.
+        :param prompt: User prompt(s).
+        :return: Response(s), if generation was successful.
         """
-        return self.llm.generate([prompt])
+        return self.llm.generate(prompt if isinstance(prompt, list) else [prompt])
+
+    def get_model_instance(self) -> Any:
+        """
+        Method for getting model instance.
+        :return: LLM instance.
+        """
+        return self.llm
+
+
+class AutoGPTQLM(LanguageModel):
+    """
+    General LM class for AutoGPTQ models.
+    """
+
+    def __init__(self, model_path: str, model_config: dict) -> None:
+        """
+        Initiation method.
+        :param model_path: Relative model path.
+        :param model_config: Model configuration.
+        :param representation: Language model representation.
+        """
+        self.tokenizer = AutoTokenizer.from_pretrained(
+            pretrained_model_name_or_path=model_path,
+            local_files_only=True,
+            **model_config.get("loader_kwargs", {}).get("tokenizer", {})
+        )
+        if "quantize_config" in model_config.get("loader_kwargs", {}).get("model", {}):
+            if isinstance(model_config["loader_kwargs"]["model"]["quantize_config"], dict):
+                model_config["loader_kwargs"]["model"]["quantize_config"] = BaseQuantizeConfig(
+                    **model_config["loader_kwargs"]["model"]["quantize_config"]
+                )
+            self.model = AutoGPTQForCausalLM.from_quantized(
+                pretrained_model_name_or_path=model_path,
+                local_files_only=True,
+                **model_config.get("loader_kwargs", {}).get("model", {})
+            )
+        else:
+            self.model = AutoGPTQForCausalLM.from_pretrained(
+                pretrained_model_name_or_path=model_path,
+                local_files_only=True,
+                **model_config.get("loader_kwargs", {}).get("model", {})
+            )
+
+    def generate(self, prompt: Union[str, List[str]]) -> Optional[Any]:
+        """
+        Main handler method for wrapping language model capabilities.
+        :param prompt: User prompt(s).
+        :return: Response(s), if generation was successful.
+        """
+        if isinstance(prompt, list):
+            responses = []
+            for single_prompt in prompt:
+                inputs = self.tokenizer(single_prompt, return_tensors="pt")
+                responses.append(self.model(**inputs))
+            return responses
+        else:
+            inputs = self.tokenizer(prompt, return_tensors="pt")
+            return self.model(**inputs)
+
+    def get_model_instance(self) -> Any:
+        """
+        Method for getting model instance.
+        :return: LLM instance.
+        """
+        return self.tokenizer, self.model
 
 
 class LocalHFLM(LanguageModel):
@@ -89,14 +163,28 @@ class LocalHFLM(LanguageModel):
             **model_config.get("loader_kwargs", {}).get("model", {})
         )
 
-    def generate(self, prompt: str) -> Optional[Any]:
+    def generate(self, prompt: Union[str, List[str]]) -> Optional[Any]:
         """
-        Generation method.
-        :param prompt: User prompt.
-        :return: Response, if generation method is available else None.
+        Main embedding method.
+        :param prompt: User prompt(s).
+        :return: Response(s), if generation was successful.
         """
-        inputs = self.tokenizer(prompt, return_tensors="pt")
-        return self.model(**inputs)
+        if isinstance(prompt, list):
+            responses = []
+            for single_prompt in prompt:
+                inputs = self.tokenizer(single_prompt, return_tensors="pt")
+                responses.append(self.model(**inputs))
+            return responses
+        else:
+            inputs = self.tokenizer(prompt, return_tensors="pt")
+            return self.model(**inputs)
+
+    def get_model_instance(self) -> Any:
+        """
+        Method for getting model instance.
+        :return: LLM instance.
+        """
+        return self.tokenizer, self.model
 
 
 class LocalHFEmbeddingLM(LocalHFLM):
@@ -104,22 +192,37 @@ class LocalHFEmbeddingLM(LocalHFLM):
     General LM class for local Huggingface models for embedding.
     """
 
-    def generate(self, prompt: str) -> List[float]:
+    def generate(self, prompt: Union[str, List[str]]) -> Optional[Any]:
         """
-        Method for embedding prompt.
-        :param prompt: Prompt.
-        :return: Prompt embedding.
+        Main embedding method.
+        :param prompt: User prompt(s).
+        :return: Response(s), if generation was successful.
         """
-        inputs = self.tokenizer(prompt, max_length=512,
-                                padding=True, truncation=True, return_tensors='pt')
+        if isinstance(prompt, list):
+            responses = []
+            for single_prompt in prompt:
+                inputs = self.tokenizer(prompt, max_length=512,
+                                        padding=True, truncation=True, return_tensors='pt')
 
-        outputs = self.model(**inputs)
-        embeddings = self.average_pool(outputs.last_hidden_state,
-                                       inputs['attention_mask'])
+                outputs = self.model(**inputs)
+                embeddings = self.average_pool(outputs.last_hidden_state,
+                                               inputs['attention_mask'])
 
-        # normalize embeddings
-        embeddings = F.normalize(embeddings, p=2, dim=1)
-        return embeddings.tolist()
+                # normalize embeddings
+                embeddings = F.normalize(embeddings, p=2, dim=1)
+                responses.append(embeddings.tolist())
+            return responses
+        else:
+            inputs = self.tokenizer(prompt, max_length=512,
+                                    padding=True, truncation=True, return_tensors='pt')
+
+            outputs = self.model(**inputs)
+            embeddings = self.average_pool(outputs.last_hidden_state,
+                                           inputs['attention_mask'])
+
+            # normalize embeddings
+            embeddings = F.normalize(embeddings, p=2, dim=1)
+            return embeddings.tolist()
 
     def average_pool(self, last_hidden_states: Tensor, attention_mask: Tensor) -> Tensor:
         """
@@ -128,6 +231,13 @@ class LocalHFEmbeddingLM(LocalHFLM):
         last_hidden = last_hidden_states.masked_fill(
             ~attention_mask[..., None].bool(), 0.0)
         return last_hidden.sum(dim=1) / attention_mask.sum(dim=1)[..., None]
+
+    def get_model_instance(self) -> Any:
+        """
+        Method for getting model instance.
+        :return: LLM instance.
+        """
+        return self.tokenizer, self.model
 
 
 """
@@ -142,6 +252,12 @@ SUPPORTED_TYPES = {
     "llamacpp": {
         "loaders": {
             "_default": LlamaCppLM
+        },
+        "gateways": {}
+    },
+    "gptq": {
+        "loaders": {
+            "_default": AutoGPTQLM,
         },
         "gateways": {}
     },

@@ -39,3 +39,7 @@ INSTRUCT_XL_PATH = os.path.join(
 Backends
 """
 BACKEND_PATH = os.path.join(DATA_PATH, "backend")
+MODEL_CONTROL_FRONTEND_CACHE = os.path.join(
+    BACKEND_PATH, "model_control", "frontend_cache.json")
+MODEL_CONTROL_FRONTEND_ASSETS = os.path.join(
+    BACKEND_PATH, "model_control", "assets")
