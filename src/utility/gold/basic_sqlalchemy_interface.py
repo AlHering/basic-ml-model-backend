@@ -17,16 +17,17 @@ class BasicSQLAlchemyInterface(object):
     Class, representing a basic SQL Alchemy interface.
     """
 
-    def __init__(self, working_directory: str, database_uri: str, population_function: Any, schema: str = "", logger: Any = None) -> None:
+    def __init__(self, working_directory: str, database_uri: str, population_function: Any = None, schema: str = "", logger: Any = None) -> None:
         """
         Initiation method.
         :param working_directory: Working directory.
         :param database_uri: Database URI.
         :param population_function: A function, taking an engine, schema and a dataclass dictionary (later one can be empty and is to be populated).
+            Defaults to None.
         :param logger: Logger instance. 
             Defaults to None in which case separate logging is disabled.
         """
-        self._logger = logger
+        self.logger = logger
         self.working_directory = working_directory
         if not os.path.exists(self.working_directory):
             os.makedirs(self.working_directory)
@@ -47,31 +48,40 @@ class BasicSQLAlchemyInterface(object):
         Internal method for setting up database infastructure.
         """
         if self.logger is not None:
-            self._logger.info("Automapping existing structures")
+            self.logger.info("Automapping existing structures")
         self.base = sqlalchemy_utility.automap_base()
         self.engine = sqlalchemy_utility.get_engine(self.database_uri)
+        self.base.prepare(autoload_with=self.engine, reflect=True)
+        self.model = sqlalchemy_utility.get_classes_from_base(self.base)
+        if self.schema:
+            schema = str(self.schema)
+            if schema and not schema.endswith("."):
+                schema += "."
+            self.model = {
+                table.replace(schema, ""): self.model[table] for table in self.model
+            }
 
-        self.model = {}
         if self.logger is not None:
-            self._logger.info(
+            self.logger.info(
                 f"Generating model tables for website with schema '{self.schema}'")
-        self.population_function(
-            self.engine, self.schema, self.model)
-
-        self.base.prepare(autoload_with=self.engine)
+            
+        if self.population_function is not None:
+            self.population_function(
+                self.engine, self.schema, self.model)
+            
         self.session_factory = sqlalchemy_utility.get_session_factory(
             self.engine)
         if self.logger is not None:
-            self._logger.info("base created with")
-            self._logger.info(f"Classes: {self.base.classes.keys()}")
-            self._logger.info(f"Tables: {self.base.metadata.tables.keys()}")
+            self.logger.info("base created with")
+            self.logger.info(f"Classes: {self.base.classes.keys()}")
+            self.logger.info(f"Tables: {self.base.metadata.tables.keys()}")
 
         self.primary_keys = {
             object_class: self.model[object_class].__mapper__.primary_key[0].name for object_class in self.model}
         if self.logger is not None:
-            self._logger.info(f"Datamodel after addition: {self.model}")
+            self.logger.info(f"Datamodel after addition: {self.model}")
             for object_class in self.model:
-                self._logger.info(
+                self.logger.info(
                     f"Object type '{object_class}' currently has {self.get_object_count_by_type(object_class)} registered entries.")
 
     """
