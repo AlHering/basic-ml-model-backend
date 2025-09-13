@@ -1,85 +1,37 @@
 # -*- coding: utf-8 -*-
-"""
-****************************************************
-*          Basic Language Model Backend            *
-*            (c) 2023 Alexander Hering             *
-****************************************************
-"""
 import os
-from dotenv import dotenv_values
+from dotenv import load_dotenv
 from . import paths as PATHS
+from . import urls as URLS
 
 
 """
 Environment file
 """
-ENV = dotenv_values(os.path.join(PATHS.PACKAGE_PATH, ".env"))
+ENV = load_dotenv(os.path.join(PATHS.PACKAGE_PATH, ".env"))
 
 
 """
-Logger
+Backend
 """
-
-
-class LOGGER_REPLACEMENT(object):
-    """
-    Logger replacement class.
-    """
-
-    def debug(self, text: str) -> None:
-        """
-        Method replacement for logging.
-        :param text: Text to log.
-        """
-        print(f"[DEBUG] {text}")
-
-    def info(self, text: str) -> None:
-        """
-        Method replacement for logging.
-        :param text: Text to log.
-        """
-        print(f"[INFO] {text}")
-
-    def warning(self, text: str) -> None:
-        """
-        Method replacement for logging.
-        :param text: Text to log.
-        """
-        print(f"[WARNING] {text}")
-
-    def warn(self, text: str) -> None:
-        """
-        Method replacement for logging.
-        :param text: Text to log.
-        """
-        print(f"[WARNING] {text}")
-
-
-LOGGER = LOGGER_REPLACEMENT()
-
-
-"""
-Project information
-"""
-PROJECT_NAME = "Basic ML model backend"
-PROJECT_DESCRIPTION = "Tool for managing machine learning models."
-PROJECT_VERSION = "v0.2"
-
-
-"""
-Network addresses
-"""
-BACKEND_HOST = ENV.get("BACKEND_HOST", "127.0.0.1")
-BACKEND_PORT = ENV.get("BACKEND_PORT", "7861")
-BACKEND_TITLE =  PROJECT_NAME
-BACKEND_DESCRIPTION = PROJECT_DESCRIPTION
-BACKEND_VERSION = PROJECT_VERSION
+BACKEND_HOST = "127.0.0.1"
+BACKEND_PORT = int("7861")
 BACKEND_ENDPOINT_BASE = "/api/v1"
-FRONTEND_HOST = ENV.get("FRONTEND_HOST", "127.0.0.1")
-FRONTEND_PORT = ENV.get("FRONTEND_PORT", "8868")
+
+PROJECT_NAME = "ModelHelper"
+PROJECT_VERSION = "v0.1"
+PROJECT_DESCRIPTION = "Helper Tool for Model management."
 
 
 """
-Others
+Frontend
 """
-FILE_UPLOAD_CHUNK_SIZE = 1024*1024
+DEFAULT_FRONTEND_CACHE = {
+
+}
+
+
+"""
+MISC
+"""
+LOGGER = None

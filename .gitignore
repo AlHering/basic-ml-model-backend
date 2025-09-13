@@ -158,18 +158,25 @@ cython_debug/
 .vscode/
 
 # Custom additions
-data/
+*_venv/
+*-venv/
+data/*
+src_prototype/
 docs/literature/
 docs/api_analysis/
 docs/todo/
 configuration/*.env
-machine_learning_models/LORAS/*
-machine_learning_models/MODELS/*
-machine_learning_models/EMBEDDING_MODELS/*
+models/*
+configs/*
+Untitled*.ipynb
+tmp*
 .desktop
+link_local_models.sh
+docs/*
+firefox_140.0
 
 # Exceptions
-!machine_learning_models/LORAS/mount ML LoRAs here.txt
-!machine_learning_models/MODELS/mount ML models here.txt
-!machine_learning_models/EMBEDDING_MODELS/mount ML models for embedding here.txt
+!models/mount_machine_learning_model_folders_here.txt
+!configs/mount_configs_folder_here.txt
+!data/mount_data_folder_here.txt
 !src/utility/data/media_types.json
